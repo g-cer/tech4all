@@ -328,3 +328,23 @@
   border-left: 4px solid #008000;
   /* Verde */
 }
+
+/* Azioni riservate all'amministratore nell'intestazione */
+.azioniAdmin {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.createQuizButton,
+.homeButton {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
+.errore {
+  color: #b3261e;
+  font-weight: 600;
+}

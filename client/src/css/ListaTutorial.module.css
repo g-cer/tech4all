@@ -137,3 +137,35 @@
 .homeButton:hover {
   background-color: #388e3c;
 }
+
+/* La scheda del tutorial è un link */
+.tutorialItem a {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+/* Il pulsante di creazione è un link */
+.createButton {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
+.homeButton {
+  display: inline-block;
+  text-decoration: none;
+  text-align: center;
+}
+
+/* Categoria e valutazione sotto la copertina */
+.meta {
+  font-size: 0.9rem;
+  color: #6b6b6b;
+  margin: 8px 0 0;
+}
+
+.errore {
+  color: #b3261e;
+  font-weight: 600;
+}

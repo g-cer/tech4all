@@ -1,121 +1,91 @@
-import { useState } from "react";
-import React from "react";
-import styles from "../src/css/Login.module.css";
+import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
-import { useAuth } from "./context/AuthContext";
-import ApiControllerFacade from "@/controller/ApiControllerFacade";
+import styles from "../src/css/Login.module.css";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { useAuth } from "@/context/AuthContext";
 
-export default function LoginPage() {
-  const { login } = useAuth(); // Usa il metodo login dal contesto
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+export default function Login() {
+  const { login } = useAuth();
   const router = useRouter();
 
-  const validateEmail = (email: string): string | null => {
-    if (!email.includes("@")) return "L'email deve contenere il simbolo '@'.";
-    if (email.length > 60) return "L'email non può superare i 60 caratteri.";
-    if (!/\.(com|it)$/.test(email))
-      return "L'email deve terminare con '.com' o '.it'.";
-    return null;
-  };
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errore, setErrore] = useState<string | null>(null);
+  const [inInvio, setInInvio] = useState(false);
 
-  const sanitizeInput = (input: string): string => {
-    // Rimuove script o tag HTML
-    return input.replace(/<\/?[^>]+(>|$)/g, "");
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const sanitizedEmail = sanitizeInput(email);
-    const sanitizedPassword = sanitizeInput(password);
-
-    const emailError = validateEmail(sanitizedEmail);
-
-    if (emailError) {
-      setError(emailError);
-      return;
-    }
-
-    if (!sanitizedPassword) {
-      setError("La password non può essere vuota.");
-      return;
-    }
-
-    //Lunghezza email tra 6 e 30 caratteri
-    if (sanitizedEmail.length < 6 || sanitizedEmail.length > 30) {
-      setError("L'email deve contenere tra 6 e 30 caratteri.");
-      return;
-    }
-
-    //formato email non valido Formato: “ ^\\w+([\\.-]?\\w+)*@\\w+([\\.-]?\\w+)*(\\.\\w{2,3})+$”
-    if (
-      !sanitizedEmail.match(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/)
-    ) {
-      setError("Formato email non valido.");
-      return;
-    }
-
-    //Lunghezza password tra 8 e 14 caratteri
-    if (sanitizedPassword.length < 8 || sanitizedPassword.length > 14) {
-      setError("La password deve contenere tra 8 e 14 caratteri.");
-      return;
-    }
-
-    //formato password non valido Formato: “?=.*[!@#$%^&*])(?=.*\\d)(?=.*[A-Z]).{8,14}”
-    if (
-      !sanitizedPassword.match(/(?=.*[!@#$%^&*])(?=.*\d)(?=.*[A-Z]).{8,14}/)
-    ) {
-      setError("Formato password non valido.");
-      return;
-    }
+  const invia = async (evento: React.FormEvent) => {
+    evento.preventDefault();
+    setErrore(null);
+    setInInvio(true);
 
     try {
-      const data = await ApiControllerFacade.loginUser(
-        sanitizedEmail,
-        sanitizedPassword
+      const utente = await login(email.trim(), password);
+      await router.push(
+        utente.ruolo === "admin" ? "/area-amministratore" : "/home",
       );
-
-      console.log("Dati utente ricevuti dal backend:", data);
-      // Passa i dati dell'utente al contesto
-      login(data.user);
-
-      alert(`Benvenuto, ${data.user?.nome || "utente"}!`);
-      router.push("/homepage");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (e) {
+      // Le regole di validazione vivono sul server: qui si mostra
+      // il messaggio che ne arriva, senza replicarle.
+      setErrore((e as Error).message);
+    } finally {
+      setInInvio(false);
     }
   };
 
   return (
-    <div className={styles.mainContainer}>
-      <div className={styles.formContainer}>
-        <h1>Login</h1>
-        {error && <p className={styles.error}>{error}</p>}
-        <form onSubmit={handleLogin}>
-          <div className={styles.inputGroup}>
-            <label>Email:</label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className={styles.inputGroup}>
-            <label>Password:</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          {error && <p className={styles.errorMessage}>{error}</p>}
-          <button type="submit" className={styles.submitButton}>
-            Login
-          </button>
-        </form>
+    <>
+      <Header />
+      <div className={styles.mainContainer}>
+        <div className={styles.formContainer}>
+          <h1>Accedi</h1>
+          {errore && (
+            <p className={styles.error} role="alert">
+              {errore}
+            </p>
+          )}
+
+          <form onSubmit={invia} noValidate>
+            <div className={styles.inputGroup}>
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className={styles.inputGroup}>
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className={styles.submitButton}
+              disabled={inInvio}
+            >
+              {inInvio ? "Accesso in corso…" : "Accedi"}
+            </button>
+          </form>
+
+          <p>
+            Non hai un account? <Link href="/registrazione">Registrati</Link>.
+          </p>
+        </div>
       </div>
-    </div>
+      <Footer />
+    </>
   );
 }

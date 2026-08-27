@@ -202,3 +202,23 @@
   border-left: 4px solid #008000;
   /* Verde */
 }
+
+/* Data di pubblicazione del feedback */
+.data {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+}
+
+/* Messaggio di errore */
+.errore {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+/* Contatore dei caratteri del commento */
+.contatore {
+  font-size: 0.8rem;
+  color: #6b6b6b;
+  text-align: right;
+  margin: 0;
+}

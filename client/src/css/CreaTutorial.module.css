@@ -143,3 +143,10 @@
 .popupContent button:hover {
   background-color: #388e3c;
 }
+
+/* Anteprima della copertina attuale in modifica */
+.anteprima {
+  max-width: 320px;
+  border-radius: 8px;
+  margin-top: 12px;
+}

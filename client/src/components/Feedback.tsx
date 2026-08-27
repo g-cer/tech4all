@@ -1,195 +1,173 @@
-import React, { useEffect, useState } from "react";
-import { Feedback } from "@/interfacce/Feedback";
-import { useAuth } from "../../pages/context/AuthContext";
+import React, { useCallback, useEffect, useState } from "react";
 import styles from "../css/Feedback.module.css";
-import ApiControllerFacade from "@/controller/ApiControllerFacade";
-type Props = {
-  id: string; // tutorialId passato dalla pagina specifica del tutorial
-};
+import { api } from "@/api";
+import { useAuth } from "@/context/AuthContext";
+import { Feedback } from "@/types";
 
-const FeedbackComponent = ({ id }: Props) => {
+interface Props {
+  tutorialId: number;
+}
+
+const VALUTAZIONI = [1, 2, 3, 4, 5];
+
+/** Elenco dei feedback di un tutorial, con inserimento e modifica del proprio. */
+const FeedbackTutorial: React.FC<Props> = ({ tutorialId }) => {
+  const { utente, isAdmin } = useAuth();
+
   const [feedback, setFeedback] = useState<Feedback[] | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false); // Stato per il modal
-  const [valutazione, setValutazione] = useState<number | "">(""); // Stato per la valutazione
-  const [commento, setCommento] = useState(""); // Stato per il commento
+  const [modaleAperta, setModaleAperta] = useState(false);
+  const [valutazione, setValutazione] = useState(5);
+  const [commento, setCommento] = useState("");
+  const [errore, setErrore] = useState<string | null>(null);
+  const [inInvio, setInInvio] = useState(false);
 
-  const { user } = useAuth(); // Ottieni i dati dell'utente autenticato dal contesto
+  const carica = useCallback(async () => {
+    try {
+      setFeedback(await api.feedback.perTutorial(tutorialId));
+    } catch {
+      setFeedback([]);
+    }
+  }, [tutorialId]);
 
   useEffect(() => {
-    console.log("Stato dell'utente nel contesto:", user);
-  }, [user]);
+    void carica();
+  }, [carica]);
 
-  // Funzione per aprire il modal e resettare i valori
-  const openModal = () => {
-    setValutazione(""); // Resetta la valutazione
-    setCommento(""); // Resetta il commento
-    setIsModalOpen(true); // Apre il modal
+  const proprio = feedback?.find((f) => f.utenteId === utente?.id) ?? null;
+
+  const apriModale = () => {
+    setValutazione(proprio?.valutazione ?? 5);
+    setCommento(proprio?.commento ?? "");
+    setErrore(null);
+    setModaleAperta(true);
   };
 
-  // Estrai fetchFeedback come funzione riutilizzabile
-  const fetchFeedback = async () => {
+  const salva = async () => {
+    setErrore(null);
+    setInInvio(true);
     try {
-      const result = await ApiControllerFacade.getFeedbackByTutorialId(
-        parseInt(id, 10)
-      );
-      console.log("Risultato feedback:", result);
-      setFeedback(result);
-    } catch (error) {
-      console.error("Errore durante il recupero dei feedback", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchFeedback(); // Carica i feedback al montaggio
-  }, [id]);
-
-  const handleCreateFeedback = async () => {
-    if (!user) {
-      alert("Devi essere autenticato per lasciare un feedback.");
-      return;
-    }
-    const utenteId = user.id;
-
-    if (!valutazione || !commento) {
-      alert("Valutazione e commento sono obbligatori!");
-      return;
-    }
-
-    if (commento.length < 2 || commento.length > 500) {
-      alert("Il commento deve contenere tra 2 e 500 caratteri.");
-      return;
-    }
-
-    if (valutazione < 1 || valutazione > 5) {
-      alert("La valutazione deve essere compresa tra 1 e 5.");
-      return;
-    }
-
-    try {
-      // Verifica se esiste già un feedback per lo stesso utente e tutorial
-      const feedbackList = await ApiControllerFacade.getFeedbackByTutorialId(
-        parseInt(id, 10)
-      );
-      const existingFeedback = feedbackList.find(
-        (feedback) => feedback.utenteId === utenteId
-      );
-
-      if (existingFeedback) {
-        alert("Feedback già esistente per questo tutorial!");
+      if (proprio) {
+        await api.feedback.aggiorna(tutorialId, valutazione, commento);
       } else {
-        await ApiControllerFacade.createFeedback(
-          valutazione as number,
-          commento,
-          utenteId,
-          parseInt(id, 10)
-        );
-
-        alert("Feedback creato con successo!");
-        setIsModalOpen(false); // Chiudi il modal
-        fetchFeedback(); // Aggiorna i feedback dopo la creazione
+        await api.feedback.crea(tutorialId, valutazione, commento);
       }
-    } catch (error) {
-      console.error("Errore durante la creazione del feedback", error);
-      alert("Errore del server");
+      setModaleAperta(false);
+      await carica();
+    } catch (e) {
+      setErrore((e as Error).message);
+    } finally {
+      setInInvio(false);
     }
   };
 
-  const handleDeleteFeedback = async (utenteId: number, tutorialId: string) => {
+  const elimina = async (autoreId: number) => {
+    setErrore(null);
     try {
-      const result = await ApiControllerFacade.deleteFeedback(
-        utenteId,
-        parseInt(tutorialId, 10)
+      await api.feedback.elimina(
+        tutorialId,
+        autoreId === utente?.id ? undefined : autoreId,
       );
-
-      if (result.success) {
-        alert("Feedback eliminato con successo!");
-        setFeedback((prev) =>
-          prev
-            ? prev.filter(
-                (item) =>
-                  item.utenteId !== utenteId ||
-                  item.tutorialId !== parseInt(tutorialId, 10)
-              )
-            : null
-        );
-      } else {
-        alert("Errore durante l'eliminazione del feedback");
-      }
-    } catch (error) {
-      console.error("Errore durante l'eliminazione del feedback", error);
-      alert("Errore del server");
+      await carica();
+    } catch (e) {
+      setErrore((e as Error).message);
     }
   };
 
   if (!feedback) {
-    return <div>Caricamento...</div>;
+    return <p>Caricamento dei feedback…</p>;
   }
 
-  const getBorderClass = (valutazione: number) => {
-    if (valutazione <= 2) return styles.borderRed;
-    if (valutazione === 3) return styles.borderYellow;
-    if (valutazione >= 4) return styles.borderGreen;
-    return "";
+  const bordo = (voto: number): string => {
+    if (voto <= 2) return styles.borderRed;
+    if (voto === 3) return styles.borderYellow;
+    return styles.borderGreen;
   };
 
   return (
     <>
-      <div className={styles.feedbackContainer}>
-        {feedback.map((item, index) => (
-          <div
-            key={`${item.utenteId}-${index}`}
-            className={`${styles.feedbackItem} ${getBorderClass(
-              item.valutazione
-            )}`}
-          >
-            <p>Valutazione: {item.valutazione || "Non disponibile"}</p>
-            <p>Commento: {item.commento || "Non disponibile"}</p>
-            <p>ID Utente: {item.utenteId ?? "Anonimo"}</p>
-            {/* Mostra il bottone elimina solo se l'utente è il creatore */}
-            {user?.id === item.utenteId && (
-              <button
-                className={styles.deleteFeedbackBtn}
-                onClick={() =>
-                  handleDeleteFeedback(
-                    item.utenteId,
-                    item.tutorialId.toString()
-                  )
-                }
-              >
-                Elimina Feedback
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-      <br />
-      <button className={styles.createFeedbackBtn} onClick={openModal}>
-        Crea Nuovo Feedback
-      </button>
+      {errore && <p className={styles.errore}>{errore}</p>}
 
-      {isModalOpen && (
+      {feedback.length === 0 ? (
+        <p>Nessun feedback per questo tutorial.</p>
+      ) : (
+        <div className={styles.feedbackContainer}>
+          {feedback.map((item) => (
+            <article
+              key={`${item.utenteId}-${item.tutorialId}`}
+              className={`${styles.feedbackItem} ${bordo(item.valutazione)}`}
+            >
+              <p>
+                <strong>Valutazione:</strong> {item.valutazione}/5
+              </p>
+              <p>{item.commento}</p>
+              {item.dataCreazione && (
+                <p className={styles.data}>
+                  {new Date(item.dataCreazione).toLocaleDateString("it-IT")}
+                </p>
+              )}
+              {(utente?.id === item.utenteId || isAdmin) && (
+                <button
+                  type="button"
+                  className={styles.deleteFeedbackBtn}
+                  onClick={() => elimina(item.utenteId)}
+                >
+                  Elimina
+                </button>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
+      {utente ? (
+        <button
+          type="button"
+          className={styles.createFeedbackBtn}
+          onClick={apriModale}
+        >
+          {proprio ? "Modifica il tuo feedback" : "Lascia un feedback"}
+        </button>
+      ) : (
+        <p>Accedi per lasciare un feedback.</p>
+      )}
+
+      {modaleAperta && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h2>Inserisci un nuovo feedback</h2>
-            <label>
-              Valutazione (1-5):
-              <input
-                type="number"
-                value={valutazione}
-                onChange={(e) => setValutazione(parseInt(e.target.value, 10))}
-              />
-            </label>
-            <label>
-              Commento:
-              <textarea
-                value={commento}
-                onChange={(e) => setCommento(e.target.value)}
-                maxLength={500}
-              ></textarea>
-            </label>
+            <h2>{proprio ? "Modifica feedback" : "Nuovo feedback"}</h2>
+
+            <label htmlFor="valutazione">Valutazione</label>
+            <select
+              id="valutazione"
+              value={valutazione}
+              onChange={(e) => setValutazione(Number(e.target.value))}
+            >
+              {VALUTAZIONI.map((voto) => (
+                <option key={voto} value={voto}>
+                  {voto} {voto === 1 ? "stella" : "stelle"}
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="commento">Commento</label>
+            <textarea
+              id="commento"
+              value={commento}
+              maxLength={500}
+              rows={5}
+              onChange={(e) => setCommento(e.target.value)}
+            />
+            <p className={styles.contatore}>{commento.length}/500</p>
+
+            {errore && <p className={styles.errore}>{errore}</p>}
+
             <div className={styles.modalButtons}>
-              <button onClick={handleCreateFeedback}>Conferma</button>
-              <button onClick={() => setIsModalOpen(false)}>Annulla</button>
+              <button type="button" onClick={salva} disabled={inInvio}>
+                {inInvio ? "Salvataggio…" : "Conferma"}
+              </button>
+              <button type="button" onClick={() => setModaleAperta(false)}>
+                Annulla
+              </button>
             </div>
           </div>
         </div>
@@ -198,4 +176,4 @@ const FeedbackComponent = ({ id }: Props) => {
   );
 };
 
-export default FeedbackComponent;
+export default FeedbackTutorial;

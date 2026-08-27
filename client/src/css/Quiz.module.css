@@ -128,3 +128,19 @@
   margin-top: 10px;
   font-weight: bold;
 }
+
+/* Badge sbloccati al termine del quiz */
+.badgeSbloccati ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.badgeSbloccati li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}

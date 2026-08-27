@@ -37,3 +37,17 @@
   font-weight: bold;
   color: #333;
 }
+
+/* Descrizione sotto il titolo della scheda */
+.descrizione {
+  display: block;
+  font-size: 0.9rem;
+  color: #6b6b6b;
+  padding: 0 12px 12px;
+}
+
+/* La scheda è un link: va privata della decorazione */
+.largeImageCard {
+  text-decoration: none;
+  color: inherit;
+}

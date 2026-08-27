@@ -230,3 +230,38 @@ body {
   padding: 1rem 2rem;
   font-size: 1rem;
 }
+
+/* Coppia di azioni sotto la presentazione */
+.azioni {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.cardButtonSecondario {
+  display: inline-block;
+  padding: 12px 24px;
+  border: 2px solid #1d5c31;
+  border-radius: 25px;
+  color: #1d5c31;
+  background-color: transparent;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.cardButtonSecondario:hover {
+  background-color: #1d5c31;
+  color: #ffffff;
+}
+
+/* Il pulsante primario è ora un link: va reso coerente con il pulsante */
+.cardButton {
+  display: inline-block;
+  text-decoration: none;
+  border-radius: 25px;
+}

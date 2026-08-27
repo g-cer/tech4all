@@ -231,3 +231,37 @@
     margin-top: 15px;
   }
 }
+
+/* Il risultato di ricerca è un pulsante: va riportato all'aspetto di una riga */
+.searchResultItem {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #f2f2f2;
+  text-align: left;
+  font-family: inherit;
+}
+
+/* Avatar cliccabile */
+.userAvatarButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+
+/* Voci del menu utente */
+.dropdownMenu a {
+  color: #1d1d1d;
+  text-decoration: none;
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.dropdownMenu a:hover,
+.dropdownMenu button:hover {
+  background-color: #f2f2f2;
+}

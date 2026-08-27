@@ -118,3 +118,23 @@
   background-color: #cccccc;
   cursor: not-allowed;
 }
+
+/* Avviso mostrato in modifica di un quiz esistente */
+.avviso {
+  background-color: #fff8e1;
+  border-left: 4px solid #f9a825;
+  padding: 12px 16px;
+  border-radius: 4px;
+}
+
+.errore {
+  color: #b3261e;
+  font-weight: 600;
+}
+
+/* Il gruppo di una domanda usa fieldset */
+.domandaContainer legend {
+  font-weight: 700;
+  color: #1d5c31;
+  padding: 0 8px;
+}

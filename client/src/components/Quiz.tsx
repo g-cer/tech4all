@@ -1,208 +1,188 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import styles from "../css/Quiz.module.css";
-import axios from "axios";
-import { useAuth } from "../../pages/context/AuthContext";
-import { Domanda, Risposta } from "@/interfacce/Quiz";
-import ApiControllerFacade from "@/controller/ApiControllerFacade";
-const DomandaComponent: React.FC<{
-  domanda: Domanda;
-  risposte: Risposta[];
-  rispostaSelezionata: number | undefined;
-  onChange: (domandaId: number, rispostaId: number) => void;
-  disabilitato: boolean;
-  evidenzia: boolean;
-}> = ({
-  domanda,
-  risposte,
-  rispostaSelezionata,
-  onChange,
-  disabilitato,
-  evidenzia,
-}) => {
-  return (
-    <div className={styles.domandaContainer}>
-      <p className={styles.domandaTesto}>{domanda.domanda}</p>
-      <div className={styles.risposteContainer}>
-        {risposte.map((risposta) => {
-          const isCorrect = risposta.corretta;
-          const isSelected = rispostaSelezionata === risposta.id;
+import { api, urlMedia } from "@/api";
+import { useAuth } from "@/context/AuthContext";
+import { EsitoQuiz, Quiz, RispostaFornita } from "@/types";
 
-          return (
-            <button
-              key={risposta.id}
-              onClick={() => onChange(domanda.id, risposta.id)}
-              disabled={disabilitato}
-              className={`${styles.rispostaButton} ${
-                evidenzia
-                  ? isCorrect && isSelected
-                    ? styles.correttaSelezionata
-                    : isSelected
-                    ? styles.errataSelezionata
-                    : styles.nonSelezionata
-                  : isSelected
-                  ? styles.selezionata
-                  : styles.nonSelezionata
-              } ${isSelected ? styles.selezionataBold : ""}`}
-            >
-              {risposta.risposta}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+interface Props {
+  tutorialId: number;
+  /** Invocata dopo una consegna, per aggiornare i dati del profilo. */
+  onConsegnato?: () => void;
+}
 
-const RisultatoComponent: React.FC<{
-  risultato: string | null;
-  risposteCorrette: number;
-}> = ({ risultato, risposteCorrette }) => {
-  return risultato ? (
-    <p className={styles.risultatoTesto}>
-      Quiz {risultato}! Hai risposto correttamente a {risposteCorrette}{" "}
-      {risposteCorrette === 1 ? "domanda" : "domande"}.
-    </p>
-  ) : null;
-};
+/**
+ * Svolgimento di un quiz.
+ *
+ * Il componente non conosce le risposte corrette: le riceve dal server solo
+ * dopo la consegna, insieme all'esito. Non è quindi possibile ricavarle
+ * ispezionando la pagina prima di rispondere.
+ */
+const QuizComponent: React.FC<Props> = ({ tutorialId, onConsegnato }) => {
+  const { utente } = useAuth();
 
-const QuizComponent: React.FC<{ tutorialId: number }> = ({ tutorialId }) => {
-  const { user } = useAuth();
-  const utenteId = user?.id;
-  const [risposteSelezionate, setRisposteSelezionate] = useState<{
-    [key: number]: number;
-  }>({});
-  const [risultato, setRisultato] = useState<string | null>(null);
-  const [bloccato, setBloccato] = useState<boolean>(false);
-  const [evidenzia, setEvidenzia] = useState<boolean>(false);
-  const [domandeQuiz, setDomandeQuiz] = useState<Domanda[]>([]);
-  const [risposteQuiz, setRisposteQuiz] = useState<Risposta[]>([]);
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [inCaricamento, setInCaricamento] = useState(true);
+  const [scelte, setScelte] = useState<Record<number, number>>({});
+  const [esito, setEsito] = useState<EsitoQuiz | null>(null);
+  const [errore, setErrore] = useState<string | null>(null);
+  const [inInvio, setInInvio] = useState(false);
 
   useEffect(() => {
-    const fetchQuizData = async () => {
-      try {
-        const { domande, risposte } =
-          await ApiControllerFacade.getQuizByTutorialId(tutorialId);
-        setDomandeQuiz(domande);
-        setRisposteQuiz(risposte);
-      } catch (error) {
-        console.error("Errore nel recupero dei dati del quiz:", error);
-      }
-    };
+    let annullato = false;
+    setInCaricamento(true);
 
-    fetchQuizData();
-  }, [tutorialId]);
-
-  const tutteRisposteDate = () => {
-    return domandeQuiz.every((domanda) =>
-      Object.keys(risposteSelezionate).includes(domanda.id.toString())
-    );
-  };
-
-  const handleCambioRisposta = (
-    domandaId: number,
-    rispostaId: number
-  ): void => {
-    if (!bloccato) {
-      setRisposteSelezionate((prev) => ({
-        ...prev,
-        [domandaId]: rispostaId,
-      }));
-    }
-  };
-
-  const handleSubmit = async (): Promise<void> => {
-    let risposteCorrette = 0;
-
-    domandeQuiz.forEach((domanda: Domanda) => {
-      const rispostaSelezionataId = risposteSelezionate[domanda.id];
-      const rispostaCorretta = risposteQuiz.find(
-        (risposta: Risposta) =>
-          risposta.domanda_id === domanda.id && risposta.corretta
-      );
-
-      if (rispostaCorretta && rispostaCorretta.id === rispostaSelezionataId) {
-        risposteCorrette++;
+    void api.quiz.perTutorial(tutorialId).then((risultato) => {
+      if (!annullato) {
+        setQuiz(risultato);
+        setScelte({});
+        setEsito(null);
+        setInCaricamento(false);
       }
     });
 
-    const percentualeCorrette = (risposteCorrette / domandeQuiz.length) * 100;
-    setRisultato(percentualeCorrette > 70 ? "superato" : "non superato");
-    setBloccato(true);
-    setEvidenzia(true);
+    return () => {
+      annullato = true;
+    };
+  }, [tutorialId]);
 
-    const risposteUtente = Object.values(risposteSelezionate);
-    const quizId = domandeQuiz[0]?.quiz_id;
+  const soluzioni = useMemo(() => {
+    const mappa = new Map<number, number>();
+    for (const soluzione of esito?.soluzioni ?? []) {
+      mappa.set(soluzione.domandaId, soluzione.rispostaCorrettaId);
+    }
+    return mappa;
+  }, [esito]);
 
-    if (quizId && utenteId) {
-      try {
-        const { success, message } = await ApiControllerFacade.executeQuiz(
-          quizId,
-          risposteUtente,
-          utenteId
-        );
+  if (inCaricamento) {
+    return <p>Caricamento del quiz…</p>;
+  }
 
-        if (success) {
-          console.log("Risultato del quiz inviato con successo");
-        } else {
-          console.error("Errore nell'invio del risultato del quiz:", message);
-        }
-      } catch (error) {
-        console.error(
-          "Errore del server nell'invio del risultato del quiz:",
-          error
-        );
-      }
+  if (!quiz) {
+    return <p className={styles.quizDescrizione}>Nessun quiz disponibile.</p>;
+  }
+
+  const tutteRisposte = quiz.domande.every((domanda) => scelte[domanda.id]);
+  const minimoCorrette = Math.ceil(quiz.domande.length * 0.7);
+
+  const consegna = async () => {
+    setErrore(null);
+    setInInvio(true);
+    try {
+      const risposte: RispostaFornita[] = quiz.domande.map((domanda) => ({
+        domandaId: domanda.id,
+        rispostaId: scelte[domanda.id],
+      }));
+      setEsito(await api.quiz.consegna(quiz.id, risposte));
+      onConsegnato?.();
+    } catch (e) {
+      setErrore((e as Error).message);
+    } finally {
+      setInInvio(false);
     }
   };
 
-  const risposteCorrette = Object.values(risposteSelezionate).filter(
-    (rispostaId) => {
-      const risposta = risposteQuiz.find((r: Risposta) => r.id === rispostaId);
-      return risposta && risposta.corretta;
+  const classeRisposta = (domandaId: number, rispostaId: number): string => {
+    const selezionata = scelte[domandaId] === rispostaId;
+    if (!esito) {
+      return selezionata ? styles.selezionata : styles.nonSelezionata;
     }
-  ).length;
-
-  const minRisposteCorrette = Math.ceil(domandeQuiz.length * 0.7);
+    if (soluzioni.get(domandaId) === rispostaId) {
+      return styles.correttaSelezionata;
+    }
+    return selezionata ? styles.errataSelezionata : styles.nonSelezionata;
+  };
 
   return (
     <div className={styles.quizContainer}>
       <h2>Quiz</h2>
       <p className={styles.quizDescrizione}>
-        Per superare il quiz, devi rispondere correttamente ad almeno{" "}
-        {minRisposteCorrette}{" "}
-        {minRisposteCorrette === 1 ? "domanda" : "domande"}.
+        Per superare il quiz devi rispondere correttamente ad almeno{" "}
+        {minimoCorrette} {minimoCorrette === 1 ? "domanda" : "domande"} su{" "}
+        {quiz.domande.length}.
       </p>
-      {domandeQuiz.map((domanda) => (
-        <DomandaComponent
-          key={domanda.id}
-          domanda={domanda}
-          risposte={risposteQuiz.filter(
-            (risposta) => risposta.domanda_id === domanda.id
-          )}
-          rispostaSelezionata={risposteSelezionate[domanda.id]}
-          onChange={handleCambioRisposta}
-          disabilitato={bloccato}
-          evidenzia={evidenzia}
-        />
+
+      {quiz.domande.map((domanda) => (
+        <div key={domanda.id} className={styles.domandaContainer}>
+          <p className={styles.domandaTesto}>{domanda.testo}</p>
+          <div className={styles.risposteContainer}>
+            {domanda.risposte.map((risposta) => (
+              <button
+                key={risposta.id}
+                type="button"
+                disabled={esito !== null || !utente}
+                className={`${styles.rispostaButton} ${classeRisposta(
+                  domanda.id,
+                  risposta.id,
+                )}`}
+                onClick={() =>
+                  setScelte((precedenti) => ({
+                    ...precedenti,
+                    [domanda.id]: risposta.id,
+                  }))
+                }
+              >
+                {risposta.testo}
+              </button>
+            ))}
+          </div>
+        </div>
       ))}
+
       <div className={styles.buttonContainer}>
-        <button
-          className={styles.submitButton}
-          onClick={handleSubmit}
-          disabled={bloccato || !tutteRisposteDate()}
-        >
-          Conferma
-        </button>
-        {!tutteRisposteDate() && (
+        {!utente ? (
           <p className={styles.errorMessage}>
-            Rispondi a tutte le domande prima di confermare.
+            Accedi per svolgere il quiz e ottenere i badge.
           </p>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={styles.submitButton}
+              onClick={consegna}
+              disabled={esito !== null || !tutteRisposte || inInvio}
+            >
+              {inInvio ? "Invio in corso…" : "Conferma"}
+            </button>
+            {!tutteRisposte && esito === null && (
+              <p className={styles.errorMessage}>
+                Rispondi a tutte le domande prima di confermare.
+              </p>
+            )}
+          </>
         )}
+        {errore && <p className={styles.errorMessage}>{errore}</p>}
       </div>
-      <RisultatoComponent
-        risultato={risultato}
-        risposteCorrette={risposteCorrette}
-      />
+
+      {esito && (
+        <div className={styles.risultatoTesto}>
+          <p>
+            Quiz {esito.esito ? "superato" : "non superato"}:{" "}
+            {esito.risposteEsatte}{" "}
+            {esito.risposteEsatte === 1
+              ? "risposta corretta"
+              : "risposte corrette"}{" "}
+            su {esito.totaleDomande}.
+          </p>
+          {esito.obiettiviSbloccati.length > 0 && (
+            <div className={styles.badgeSbloccati}>
+              <p>Hai sbloccato un nuovo traguardo:</p>
+              <ul>
+                {esito.obiettiviSbloccati.map((obiettivo) => (
+                  <li key={obiettivo.nome}>
+                    <img
+                      src={urlMedia(obiettivo.graficaBadge)}
+                      alt=""
+                      width={40}
+                      height={40}
+                    />
+                    <span>{obiettivo.nome}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
