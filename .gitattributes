@@ -1,0 +1,21 @@
+# Fine riga normalizzati a LF nel repository e nelle copie di lavoro, su
+# qualunque piattaforma. Senza questa regola Git li converte in CRLF sui
+# sistemi Windows, e Prettier — configurato su LF — segnala un errore per
+# ogni riga di ogni file.
+* text=auto eol=lf
+
+# Binari: nessuna conversione, nessun tentativo di diff testuale.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.svg   text eol=lf
+*.woff  binary
+*.woff2 binary
+*.jar   binary
+
+# ProjectDocs raccoglie artefatti consegnati durante il corso: restano
+# esattamente come sono stati prodotti, senza alcuna conversione.
+ProjectDocs/** -text
