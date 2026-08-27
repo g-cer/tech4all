@@ -1,0 +1,124 @@
+\chapter{Matrice di tracciabilità}
+\label{cap:rad-app-tracciabilita}
+
+La matrice lega ogni requisito funzionale al caso d'uso che lo realizza e
+allo scenario da cui è emerso, quando ne esiste uno. È il primo anello di una
+catena che prosegue nel System Design Document, dove ogni caso d'uso è
+associato ai servizi che lo realizzano, e nel Test Document, dove ogni
+requisito è associato ai casi di test che lo verificano.
+
+Un requisito privo di scenario non è per questo meno fondato: significa che è
+emerso dall'analisi del dominio o da un vincolo, non da un episodio d'uso
+concreto.
+
+\section{Requisiti funzionali, casi d'uso e scenari}
+
+\begin{longtable}{@{}l L{5.4cm} l L{4.2cm}@{}}
+\toprule
+\textbf{Requisito} & \textbf{Caso d'uso} & \textbf{Scenario} &
+\textbf{Obiettivo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requisito} & \textbf{Caso d'uso} & \textbf{Scenario} &
+\textbf{Obiettivo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_AU\_1}  & \id{UC\_01} Registrarsi                & \id{SC\_1} & \id{OB\_1} \\
+\id{RF\_AU\_2}  & \id{UC\_02} Autenticarsi               & \id{SC\_1} & \id{OB\_5} \\
+\id{RF\_AU\_3}  & \id{UC\_03} Terminare la sessione      & ---        & \id{OB\_5} \\
+\id{RF\_AU\_4}  & \id{UC\_04} Gestire il proprio profilo & ---        & \id{OB\_3} \\
+\id{RF\_AU\_5}  & \id{UC\_01} Registrarsi                & \id{SC\_1} & \id{OB\_1} \\
+\id{RF\_AU\_6}  & \id{UC\_04} Gestire il proprio profilo & ---        & \id{OB\_5} \\
+\id{RF\_AU\_7}  & \id{UC\_04} Gestire il proprio profilo & ---        & \id{OB\_5} \\
+\id{RF\_AU\_8}  & \id{UC\_05} Eliminare il proprio account & ---      & \id{OB\_5} \\
+\id{RF\_AU\_9}  & \id{UC\_20} Amministrare gli account   & ---        & \id{OB\_5} \\
+\id{RF\_AU\_10} & \id{UC\_20} Amministrare gli account   & ---        & \id{OB\_5} \\
+\midrule
+\id{RF\_CT\_1}  & \id{UC\_06} Consultare il catalogo     & \id{SC\_1} & \id{OB\_1} \\
+\id{RF\_CT\_2}  & \id{UC\_06} Consultare il catalogo     & \id{SC\_1} & \id{OB\_1} \\
+\id{RF\_CT\_3}  & \id{UC\_07} Cercare un tutorial        & ---        & \id{OB\_1} \\
+\id{RF\_CT\_4}  & \id{UC\_08} Consultare un tutorial     & \id{SC\_1} & \id{OB\_1} \\
+\id{RF\_CT\_5}  & \id{UC\_06} Consultare il catalogo     & ---        & \id{OB\_1} \\
+\id{RF\_CT\_6}  & \id{UC\_13} Pubblicare un tutorial     & \id{SC\_3} & \id{OB\_1} \\
+\id{RF\_CT\_7}  & \id{UC\_15} Aggiornare un tutorial     & \id{SC\_3} & \id{OB\_1} \\
+\id{RF\_CT\_8}  & \id{UC\_16} Ritirare un tutorial       & ---        & \id{OB\_1} \\
+\id{RF\_CT\_9}  & \id{UC\_14} Caricare un'immagine       & \id{SC\_3} & \id{OB\_1} \\
+\id{RF\_CT\_10} & \id{UC\_14} Caricare un'immagine       & \id{SC\_3} & \id{OB\_1} \\
+\midrule
+\id{RF\_QZ\_1}  & \id{UC\_09} Svolgere un quiz           & \id{SC\_1} & \id{OB\_2}, \id{OB\_6} \\
+\id{RF\_QZ\_2}  & \id{UC\_09} Svolgere un quiz           & \id{SC\_2} & \id{OB\_2}, \id{OB\_6} \\
+\id{RF\_QZ\_3}  & \id{UC\_17} Definire il quiz           & \id{SC\_3} & \id{OB\_2} \\
+\id{RF\_QZ\_4}  & \id{UC\_17} Definire il quiz           & ---        & \id{OB\_2} \\
+\id{RF\_QZ\_5}  & \id{UC\_18} Rimuovere il quiz          & ---        & \id{OB\_2} \\
+\midrule
+\id{RF\_FB\_1}  & \id{UC\_08} Consultare un tutorial     & \id{SC\_4} & \id{OB\_4} \\
+\id{RF\_FB\_2}  & \id{UC\_11} Consultare i progressi     & ---        & \id{OB\_4} \\
+\id{RF\_FB\_3}  & \id{UC\_12} Gestire il proprio feedback & \id{SC\_4} & \id{OB\_4} \\
+\id{RF\_FB\_4}  & \id{UC\_12} Gestire il proprio feedback & \id{SC\_4} & \id{OB\_4} \\
+\id{RF\_FB\_5}  & \id{UC\_12} Gestire il proprio feedback & \id{SC\_4} & \id{OB\_4} \\
+\id{RF\_FB\_6}  & \id{UC\_21} Moderare i feedback        & \id{SC\_4} & \id{OB\_4} \\
+\midrule
+\id{RF\_OB\_1}  & \id{UC\_11} Consultare i progressi     & ---        & \id{OB\_3} \\
+\id{RF\_OB\_2}  & \id{UC\_11} Consultare i progressi     & \id{SC\_2} & \id{OB\_3} \\
+\id{RF\_OB\_3}  & \id{UC\_10} Conseguire un obiettivo    & \id{SC\_2} & \id{OB\_3} \\
+\id{RF\_OB\_4}  & \id{UC\_19} Gestire gli obiettivi      & ---        & \id{OB\_3} \\
+\id{RF\_OB\_5}  & \id{UC\_19} Gestire gli obiettivi      & ---        & \id{OB\_3} \\
+\id{RF\_OB\_6}  & \id{UC\_19} Gestire gli obiettivi      & ---        & \id{OB\_3} \\
+
+\end{longtable}
+
+\section{Requisiti non funzionali e obiettivi}
+
+\begin{longtable}{@{}l L{8.8cm} L{3.0cm}@{}}
+\toprule
+\textbf{Requisito} & \textbf{Origine} & \textbf{Obiettivo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requisito} & \textbf{Origine} & \textbf{Obiettivo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_F\_1} & Trattamento delle credenziali; vincolo \id{V\_4} & \id{OB\_5} \\
+\id{RNF\_F\_2} & Protezione dei dati degli utenti & \id{OB\_5} \\
+\id{RNF\_F\_3} & Separazione dei ruoli (\cref{sec:rad-attori}) & \id{OB\_5} \\
+\id{RNF\_F\_4} & Protezione contro l'impersonificazione & \id{OB\_5} \\
+\id{RNF\_F\_5} & Contenuti redazionali in HTML (\id{SC\_3}) & \id{OB\_5} \\
+\id{RNF\_F\_6} & Integrità della verifica (\id{SC\_2}) & \id{OB\_6} \\
+\id{RNF\_F\_7} & Caricamento di file (\id{UC\_14}) & \id{OB\_5} \\
+\midrule
+\id{RNF\_U\_1} & Pubblico di riferimento (\cref{cap:rad-sistema-corrente}) & \id{OB\_1} \\
+\id{RNF\_U\_2} & Recupero dall'errore (\id{SC\_3}) & \id{OB\_1} \\
+\id{RNF\_U\_3} & Operazioni irreversibili (\id{UC\_05}, \id{UC\_16}) & \id{OB\_1} \\
+\id{RNF\_U\_4} & Assenza di barriere d'ingresso (\id{SC\_1}) & \id{OB\_1} \\
+\midrule
+\id{RNF\_A\_1} & Aggregato quiz (\id{UC\_17}) & \id{OB\_2} \\
+\id{RNF\_A\_2} & Riservatezza dei dettagli interni & \id{OB\_5} \\
+\id{RNF\_A\_3} & Verificabilità del sistema & \id{OB\_2}, \id{OB\_6} \\
+\id{RNF\_A\_4} & Ripetizione dei quiz (\id{SC\_2}) & \id{OB\_3} \\
+\midrule
+\id{RNF\_P\_1} & Lettura dell'aggregato quiz & \id{OB\_2} \\
+\id{RNF\_P\_2} & Ricerca e filtro (\id{UC\_07}) & \id{OB\_1} \\
+\midrule
+\id{RNF\_S\_1} & Manutenibilità del sistema & --- \\
+\id{RNF\_S\_2} & Coerenza fra validazione e dominio & --- \\
+\id{RNF\_S\_3} & Verificabilità continua & --- \\
+
+\end{longtable}
+
+\begin{nota}
+\textbf{Copertura degli obiettivi.} Ogni obiettivo di
+\cref{tab:rad-obiettivi} è raggiunto da almeno un requisito: \id{OB\_1} dai
+requisiti del catalogo e da \id{RNF\_U\_4}; \id{OB\_2} da quelli dei quiz;
+\id{OB\_3} da quelli degli obiettivi e da \id{RNF\_A\_4}; \id{OB\_4} da
+quelli dei feedback; \id{OB\_5} dai requisiti di sicurezza; \id{OB\_6} da
+\id{RNF\_F\_6} e \id{RF\_QZ\_1}. Nessun requisito è privo di un obiettivo che
+lo giustifichi, con l'eccezione dei tre requisiti di supportabilità, che
+riguardano il processo di sviluppo e non il prodotto.
+\end{nota}

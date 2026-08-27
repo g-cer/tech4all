@@ -1,0 +1,38 @@
+@startuml
+!include _stile.puml
+
+title SC_02 — Stati di un tutorial nel catalogo
+
+[*] --> Pubblicato : pubblica
+
+state Pubblicato {
+  state "Senza verifica" as SenzaQuiz
+  state "Con verifica" as ConQuiz
+
+  [*] --> SenzaQuiz
+  SenzaQuiz --> ConQuiz : definisci quiz
+  ConQuiz --> SenzaQuiz : rimuovi quiz
+  ConQuiz --> ConQuiz : ridefinisci quiz
+
+  state "Non valutato" as NonValutato
+  state "Valutato" as Valutato
+}
+
+Pubblicato --> Pubblicato : aggiorna\n(titolo, categoria,\ncontenuto, copertina)
+
+Pubblicato --> [*] : ritira
+
+note right of Pubblicato
+  Il ritiro rimuove in cascata quiz,
+  domande, risposte, svolgimenti e
+  feedback associati.
+end note
+
+state NonValutato : nessun feedback ricevuto\nvalutazioneMedia = non definita
+state Valutato : almeno un feedback\nvalutazioneMedia = media dei voti
+
+NonValutato --> Valutato : primo feedback
+Valutato --> Valutato : nuovo feedback\no modifica
+Valutato --> NonValutato : rimosso l'ultimo feedback
+
+@enduml

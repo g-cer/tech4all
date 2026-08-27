@@ -1,0 +1,40 @@
+@startuml
+!include _stile.puml
+
+title SD_02 — Pubblicazione di un tutorial
+
+actor Amministratore as A
+participant "«boundary»\n:InterfacciaAmministrazione" as B
+participant "«control»\n:GestoreCatalogo" as GC
+participant "«entity»\ntutorial:Tutorial" as T
+
+A -> B : compila titolo, categoria,\ncontenuto e copertina
+A -> B : conferma
+
+B -> GC : pubblica(dati del tutorial)
+activate GC
+
+GC -> GC : verifica i vincoli di dominio\n(lunghezze, categoria, formato immagine)
+
+alt dati non validi
+  GC --> B : errore di validazione
+  B --> A : segnala il campo non conforme
+else dati validi
+  GC -> GC : sanifica il contenuto HTML
+  note right of GC
+    La sanificazione avviene in ingresso:
+    ciò che è memorizzato è già sicuro
+    da mostrare.
+  end note
+  GC -> GC : normalizza la copertina
+  GC -> T : crea
+  activate T
+  T --> GC : tutorial con identificativo
+  deactivate T
+  GC --> B : tutorial pubblicato
+  B --> A : mostra il tutorial appena creato
+end
+
+deactivate GC
+
+@enduml

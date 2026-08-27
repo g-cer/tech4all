@@ -1,0 +1,69 @@
+@startuml
+!include _stile.puml
+
+title Modello a oggetti dell'analisi — boundary, control ed entity
+
+skinparam classFontSize 12
+
+package "Oggetti boundary" <<Rectangle>> {
+  class InterfacciaAccesso <<boundary>>
+  class InterfacciaCatalogo <<boundary>>
+  class InterfacciaTutorial <<boundary>>
+  class InterfacciaQuiz <<boundary>>
+  class InterfacciaFeedback <<boundary>>
+  class InterfacciaAreaPersonale <<boundary>>
+  class InterfacciaAmministrazione <<boundary>>
+}
+
+package "Oggetti control" <<Rectangle>> {
+  class GestoreAccesso <<control>>
+  class GestoreAccount <<control>>
+  class GestoreCatalogo <<control>>
+  class GestoreQuiz <<control>>
+  class GestoreFeedback <<control>>
+  class GestoreObiettivi <<control>>
+}
+
+package "Oggetti entity" <<Rectangle>> {
+  class Utente <<entity>>
+  class Tutorial <<entity>>
+  class Quiz <<entity>>
+  class Svolgimento <<entity>>
+  class Feedback <<entity>>
+  class Obiettivo <<entity>>
+  class Conseguimento <<entity>>
+}
+
+InterfacciaAccesso --> GestoreAccesso
+InterfacciaAreaPersonale --> GestoreAccount
+InterfacciaAreaPersonale --> GestoreObiettivi
+InterfacciaCatalogo --> GestoreCatalogo
+InterfacciaTutorial --> GestoreCatalogo
+InterfacciaQuiz --> GestoreQuiz
+InterfacciaFeedback --> GestoreFeedback
+InterfacciaAmministrazione --> GestoreCatalogo
+InterfacciaAmministrazione --> GestoreQuiz
+InterfacciaAmministrazione --> GestoreObiettivi
+InterfacciaAmministrazione --> GestoreAccount
+
+GestoreAccesso --> Utente
+GestoreAccount --> Utente
+GestoreCatalogo --> Tutorial
+GestoreQuiz --> Quiz
+GestoreQuiz --> Svolgimento
+GestoreQuiz --> GestoreObiettivi
+GestoreFeedback --> Feedback
+GestoreObiettivi --> Obiettivo
+GestoreObiettivi --> Conseguimento
+
+note as N1
+  Gli oggetti boundary rappresentano il confine
+  fra sistema e attori, non i singoli elementi
+  grafici dell'interfaccia.
+
+  `GestoreQuiz` si appoggia a `GestoreObiettivi`
+  perché il conseguimento di un badge è una
+  conseguenza del superamento di un quiz.
+end note
+
+@enduml

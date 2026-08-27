@@ -1,0 +1,50 @@
+@startuml
+!include _stile.puml
+
+title Organizzazione dei package del server
+
+package "app" {
+  package "routes" as R
+  package "services" as S
+  package "dao" as D
+  package "entity" as E
+  package "dto" as T
+  package "middleware" as M
+  package "errors" as X
+  package "validation" as V
+}
+
+package "config" as C
+package "db" as DB
+
+R --> S
+R --> T
+R --> M
+R --> V
+R --> X
+
+S --> D
+S --> E
+S --> X
+S --> V
+S --> DB
+
+D --> E
+D --> DB
+
+T --> E
+
+M --> X
+M --> C
+M --> E
+
+DB --> C
+
+note right of R
+  Le dipendenze puntano sempre verso
+  il basso: nessun package interno
+  conosce le rotte, e le entità non
+  conoscono nulla.
+end note
+
+@enduml

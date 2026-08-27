@@ -1,0 +1,56 @@
+@startuml
+!include _stile.puml
+
+title Decomposizione in sottosistemi
+
+component "Interfaccia utente\n(Next.js)" as UI
+
+package "Server applicativo" {
+  component "Middleware\ndi sicurezza" as MW
+  component "Autenticazione" as AUT
+  component "Gestione\naccount" as ACC
+  component "Gestione\ntutorial" as TUT
+  component "Gestione\nquiz" as QUI
+  component "Gestione\nfeedback" as FBK
+  component "Gestione\nobiettivi" as OBI
+  component "Accesso\nai dati" as DAT
+}
+
+database "MySQL" as DB
+folder "File caricati" as FS
+
+UI ..> MW : HTTP/JSON\ncookie di sessione
+
+MW --> AUT
+MW --> ACC
+MW --> TUT
+MW --> QUI
+MW --> FBK
+MW --> OBI
+
+QUI --> OBI : conseguimenti
+
+AUT --> DAT
+ACC --> DAT
+TUT --> DAT
+QUI --> DAT
+FBK --> DAT
+OBI --> DAT
+
+DAT --> DB
+TUT --> FS
+
+note right of MW
+  Attraversato da ogni richiesta:
+  verifica la sessione, il ruolo e
+  la forma dei dati prima che un
+  sottosistema entri in gioco.
+end note
+
+note bottom of QUI
+  Unica dipendenza fra sottosistemi
+  applicativi: il superamento di un
+  quiz può sbloccare un obiettivo.
+end note
+
+@enduml

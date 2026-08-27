@@ -1,0 +1,56 @@
+@startuml
+!include _stile.puml
+
+title Gerarchia degli errori applicativi
+
+abstract class AppError {
+  +{abstract} status : number
+  +{abstract} code : string
+  +details? : unknown
+  +message : string
+}
+
+class ValidationError {
+  +status = 400
+  +code = "VALIDATION_ERROR"
+}
+class UnauthorizedError {
+  +status = 401
+  +code = "UNAUTHORIZED"
+}
+class ForbiddenError {
+  +status = 403
+  +code = "FORBIDDEN"
+}
+class NotFoundError {
+  +status = 404
+  +code = "NOT_FOUND"
+}
+class ConflictError {
+  +status = 409
+  +code = "CONFLICT"
+}
+
+class Error <<built-in>>
+
+Error <|-- AppError
+AppError <|-- ValidationError
+AppError <|-- UnauthorizedError
+AppError <|-- ForbiddenError
+AppError <|-- NotFoundError
+AppError <|-- ConflictError
+
+class errorHandler <<middleware>> {
+  +(errore, req, res, next)
+}
+
+errorHandler ..> AppError : riconosce e traduce
+
+note right of errorHandler
+  Un errore che non discende da
+  `AppError` è considerato imprevisto:
+  produce 500 con un messaggio
+  generico, senza dettagli interni.
+end note
+
+@enduml

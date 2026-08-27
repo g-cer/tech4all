@@ -1,0 +1,95 @@
+' ============================================================================
+'  Stile condiviso da tutti i diagrammi di Tech4All.
+'
+'  Incluso con `!include _stile.puml` come prima riga dopo @startuml.
+'  Tiene i diagrammi coerenti fra loro e con la tipografia dei documenti:
+'  sobri, in scala di grigi con un solo accento verde.
+' ============================================================================
+
+skinparam backgroundColor transparent
+skinparam shadowing false
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam roundCorner 4
+skinparam ArrowColor #333333
+skinparam ArrowFontColor #333333
+skinparam ArrowFontSize 12
+
+skinparam actor {
+  BorderColor #1D5C31
+  BackgroundColor #FFFFFF
+  FontSize 13
+}
+
+skinparam usecase {
+  BorderColor #1D5C31
+  BackgroundColor #F4F9F5
+  FontSize 12
+}
+
+skinparam class {
+  BorderColor #1D5C31
+  BackgroundColor #FFFFFF
+  HeaderBackgroundColor #EDF4EE
+  AttributeFontSize 11
+  FontSize 12
+}
+
+skinparam component {
+  BorderColor #1D5C31
+  BackgroundColor #F4F9F5
+  FontSize 12
+}
+
+skinparam package {
+  BorderColor #4A4A4A
+  BackgroundColor transparent
+  FontSize 12
+}
+
+skinparam node {
+  BorderColor #1D5C31
+  BackgroundColor #FFFFFF
+  FontSize 12
+}
+
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #4A4A4A
+  LifeLineBackgroundColor #F0F0F0
+  ParticipantBorderColor #1D5C31
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantFontSize 12
+  ActorBorderColor #1D5C31
+  ActorBackgroundColor #FFFFFF
+  BoxBorderColor #4A4A4A
+  GroupBorderColor #4A4A4A
+  GroupBackgroundColor #EDEDED
+}
+
+skinparam state {
+  BorderColor #1D5C31
+  BackgroundColor #F4F9F5
+  FontSize 12
+  StartColor #1D5C31
+  EndColor #1D5C31
+}
+
+skinparam activity {
+  BorderColor #1D5C31
+  BackgroundColor #F4F9F5
+  DiamondBorderColor #1D5C31
+  DiamondBackgroundColor #FFFFFF
+  StartColor #1D5C31
+  EndColor #1D5C31
+  FontSize 12
+}
+
+skinparam note {
+  BorderColor #4A4A4A
+  BackgroundColor #FBFBF2
+  FontSize 11
+}
+
+hide empty members
+hide circle

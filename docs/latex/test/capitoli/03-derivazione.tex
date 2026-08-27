@@ -1,0 +1,227 @@
+\chapter{Derivazione dei casi di test}
+\label{cap:td-derivazione}
+
+Le tabelle di parametri e i \term{test frame} che compaiono nel capitolo
+successivo non sono elenchi arbitrari: sono il prodotto di un metodo. Questo
+capitolo lo descrive e ne mostra l'applicazione completa a un caso, così che
+le tabelle che seguono siano leggibili come risultato e non come premessa.
+
+\section{Il metodo della category partition}
+
+Il metodo di Ostrand e Balcer~\cite{ostrand1988} deriva i casi di test dalla
+specifica di una funzione attraverso quattro passi.
+
+\begin{enumerate}
+  \item \textbf{Individuare i parametri e le condizioni dell'ambiente} che
+    influenzano il comportamento della funzione. I parametri sono gli
+    argomenti; le condizioni dell'ambiente sono lo stato del sistema al
+    momento della chiamata.
+  \item \textbf{Individuare le categorie}: per ciascun parametro, le
+    proprietà che ne determinano il trattamento. Per una stringa, tipicamente
+    la lunghezza e il formato; per un riferimento, l'esistenza dell'oggetto
+    riferito.
+  \item \textbf{Partizionare ogni categoria in scelte}, cioè in classi di
+    valori trattati allo stesso modo. Ogni scelta è annotata come valida
+    (\id{[valido]}) o non valida (\id{[errore]}).
+  \item \textbf{Comporre i test frame} combinando una scelta per categoria,
+    applicando i vincoli che escludono le combinazioni impossibili o
+    ridondanti.
+\end{enumerate}
+
+Senza il quarto passo il numero di combinazioni esplode: con sei categorie da
+tre scelte si avrebbero 729 casi. I vincoli lo riducono a un numero
+gestibile, e sono di due tipi.
+
+\begin{description}[leftmargin=1.4cm,style=nextline]
+  \item[\id{[error]}] Una scelta non valida produce un solo test frame, in cui
+    tutti gli altri parametri assumono un valore valido. Non ha senso
+    combinare due errori: la funzione si arresta al primo, e il secondo non
+    verrebbe mai raggiunto.
+  \item[\id{[property]} e \id{[if]}] Una scelta può essere selezionata solo se
+    un'altra è stata selezionata. Serve a escludere combinazioni impossibili:
+    non si può verificare il formato di un'email se l'email è assente.
+\end{description}
+
+\section{Convenzioni di identificazione}
+
+\begin{longtable}{@{}L{3.4cm} L{11.0cm}@{}}
+\toprule
+\textbf{Elemento} & \textbf{Convenzione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Elemento} & \textbf{Convenzione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Scelta &
+Sigla del parametro seguita da un numero progressivo. Esempio: \id{LC1} è la
+prima scelta della categoria \enquote{lunghezza del commento}. \\
+
+Test frame &
+Insieme delle scelte selezionate. Esempio:
+\id{\{LC2, VA2, EF1, TU1\}}. \\
+
+Caso di test &
+\id{TC\_<area>\_<numero>}, dove \id{<area>} è la sigla del sottosistema
+usata nel RAD. Esempio: \id{TC\_FB\_03}. \\
+
+\end{longtable}
+
+\section{Esempio completo: inserimento di un feedback}
+\label{sec:td-esempio}
+
+Si applica il metodo all'operazione
+\id{creaFeedback(utenteId, tutorialId, dati)} del sottosistema Gestione
+feedback, che realizza \id{RF\_FB\_3}.
+
+\subsection{Passo 1 — Parametri e condizioni dell'ambiente}
+
+\begin{longtable}{@{}L{3.4cm} L{4.0cm} L{7.0cm}@{}}
+\toprule
+\textbf{Elemento} & \textbf{Tipo} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Elemento} & \textbf{Tipo} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{valutazione} & parametro & Voto numerico assegnato al tutorial. \\
+\id{commento} & parametro & Testo del giudizio. \\
+\id{tutorialId} & parametro & Tutorial oggetto della valutazione. \\
+\id{utenteId} & parametro & Autore, ricavato dalla sessione. \\
+Feedback preesistente & ambiente &
+Presenza di un feedback della stessa coppia utente-tutorial. \\
+
+\end{longtable}
+
+L'ultima riga è una condizione dell'ambiente e non un parametro: non è
+passata alla funzione ma ne determina il comportamento, ed è la ragione per
+cui il metodo distingue i due concetti.
+
+\subsection{Passo 2 e 3 — Categorie e scelte}
+
+\begin{longtable}{@{}L{3.0cm} L{3.2cm} L{4.4cm} L{2.6cm}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelta} & \textbf{Sigla} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelta} & \textbf{Sigla} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\multirow{4}{*}{\id{valutazione}} & \multirow{2}{*}{Intervallo} &
+  $< 1$ \hfill \id{[errore]} & \id{VA1} \\
+ & & $1 \le v \le 5$ \hfill \id{[valido]} & \id{VA2} \\
+ & & $> 5$ \hfill \id{[errore]} & \id{VA3} \\
+ & Tipo & non intero \hfill \id{[errore]} & \id{VA4} \\
+\midrule
+
+\multirow{3}{*}{\id{commento}} & \multirow{3}{*}{Lunghezza} &
+  $< 2$ caratteri \hfill \id{[errore]} & \id{LC1} \\
+ & & da 2 a 500 caratteri \hfill \id{[valido]} & \id{LC2} \\
+ & & $> 500$ caratteri \hfill \id{[errore]} & \id{LC3} \\
+\midrule
+
+\id{tutorialId} & Esistenza &
+  tutorial inesistente \hfill \id{[errore]} & \id{TU1} \\
+ & & tutorial esistente \hfill \id{[valido]} & \id{TU2} \\
+\midrule
+
+Ambiente & Feedback preesistente &
+  presente \hfill \id{[errore]} & \id{FP1} \\
+ & & assente \hfill \id{[valido]} & \id{FP2} \\
+
+\end{longtable}
+
+\subsection{Passo 4 — Vincoli e test frame}
+
+I vincoli applicati sono due, entrambi del tipo \id{[error]}:
+
+\begin{itemize}
+  \item una scelta non valida di \id{valutazione} o \id{commento} rende
+    irrilevanti le scelte successive, perché la validazione dei dati precede
+    ogni accesso al database;
+  \item la verifica dell'esistenza del tutorial precede quella del feedback
+    preesistente, quindi \id{TU1} rende irrilevante la scelta su \id{FP}.
+\end{itemize}
+
+Le combinazioni passano così da $4 \times 3 \times 2 \times 2 = 48$ a otto
+test frame.
+
+\begin{longtable}{@{}l L{4.4cm} L{3.4cm} L{4.0cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Test frame} & \textbf{Esito atteso} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Test frame} & \textbf{Esito atteso} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_FB\_01} & \id{\{VA2, LC2, TU2, FP2\}} & Feedback registrato &
+  L'oggetto restituito riporta autore, tutorial, voto e commento; il DAO di
+  creazione è stato invocato. \\
+
+\id{TC\_FB\_02} & \id{\{VA1, LC2, TU2, FP2\}} & \id{ValidationError} &
+  Nessuna scrittura sul database. \\
+
+\id{TC\_FB\_03} & \id{\{VA3, LC2, TU2, FP2\}} & \id{ValidationError} &
+  Come sopra. \\
+
+\id{TC\_FB\_04} & \id{\{VA4, LC2, TU2, FP2\}} & \id{ValidationError} &
+  Come sopra: una valutazione non intera è rifiutata anche se compresa
+  nell'intervallo. \\
+
+\id{TC\_FB\_05} & \id{\{VA2, LC1, TU2, FP2\}} & \id{ValidationError} &
+  Come sopra. \\
+
+\id{TC\_FB\_06} & \id{\{VA2, LC3, TU2, FP2\}} & \id{ValidationError} &
+  Come sopra. \\
+
+\id{TC\_FB\_07} & \id{\{VA2, LC2, TU1\}} & \id{NotFoundError} &
+  L'esistenza del tutorial è verificata prima dell'unicità del feedback. \\
+
+\id{TC\_FB\_08} & \id{\{VA2, LC2, TU2, FP1\}} & \id{ConflictError} &
+  Il feedback preesistente non viene sovrascritto. \\
+
+\end{longtable}
+
+\begin{nota}
+\textbf{Un caso che il metodo non produce.} La specifica prevede che l'autore
+del feedback sia sempre l'utente indicato dal chiamante, mai un valore
+proveniente dalla richiesta. Non è una partizione di un parametro: è una
+proprietà della funzione. Le proprietà di questo tipo — che il RAD elenca
+come requisiti non funzionali — richiedono casi di test scritti a parte, e
+sono raccolte in \cref{sec:td-tc-accessi}.
+\end{nota}
+
+\subsection{Dal test frame al codice}
+
+Ogni test frame corrisponde a una asserzione eseguibile. Il caso
+\id{TC\_FB\_08} è realizzato così:
+
+\begin{lstlisting}[language=Java,caption={Realizzazione di \id{TC\_FB\_08}.},
+                   label={lst:td-tc-fb-08}]
+it("impedisce due feedback dello stesso utente sullo stesso tutorial",
+   async () => {
+     feedbackDao.find.mockResolvedValue(unFeedback());   // FP1
+
+     await expect(
+       servizio.creaFeedback(1, 1, datiValidi),          // VA2, LC2, TU2
+     ).rejects.toBeInstanceOf(ConflictError);
+   });
+\end{lstlisting}
+
+Il doppio del DAO realizza la condizione dell'ambiente; gli argomenti
+realizzano le scelte sui parametri; l'asserzione è l'oracolo.

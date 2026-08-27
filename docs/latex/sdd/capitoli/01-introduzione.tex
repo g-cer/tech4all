@@ -1,0 +1,129 @@
+\chapter{Introduzione}
+\label{cap:sdd-introduzione}
+
+\section{Scopo del documento}
+
+Questo documento descrive come Tech4All è costruito. Muove dai requisiti non
+funzionali del RAD per ricavarne gli obiettivi di progettazione, decompone il
+sistema in sottosistemi, ne definisce l'interfaccia, e scende fino alla
+progettazione delle classi che li realizzano.
+
+Rispetto all'impostazione di Bruegge e Dutoit~\cite{bruegge2010} il documento
+accorpa il System Design Document e l'Object Design Document. La scelta è
+motivata dalla scala del sistema: un ODD autonomo, per un progetto di queste
+dimensioni, sarebbe in gran parte frontespizio, glossario e ripetizione delle
+premesse. L'object design occupa quindi il \cref{cap:sdd-object-design}, con
+tutti i contenuti che il testo di riferimento gli attribuisce.
+
+\section{Obiettivi di progettazione}
+\label{sec:sdd-design-goals}
+
+Gli obiettivi di progettazione (\term{design goal}) traducono i requisiti non
+funzionali in criteri che guidano le decisioni tecniche. Ciascuno è derivato
+da uno o più requisiti del RAD; la corrispondenza completa è
+nell'appendice~\ref{cap:sdd-app-tracciabilita}.
+
+\begin{longtable}{@{}l L{4.4cm} L{7.4cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Obiettivo} & \textbf{Significato operativo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Obiettivo} & \textbf{Significato operativo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{DG\_1} & Fiducia nel confine &
+Ciò che arriva dall'esterno non è mai considerato attendibile: né i dati,
+né l'identità dichiarata, né i nomi dei file. Il sistema decide sulla base
+di ciò che possiede, non di ciò che gli viene detto. \\
+
+\id{DG\_2} & Un solo luogo per ogni decisione &
+Ogni regola — un vincolo di dominio, una soglia, un permesso — è definita in
+un punto solo. Regole duplicate divergono. \\
+
+\id{DG\_3} & Verificabilità &
+Ogni componente deve poter essere esercitato in isolamento, senza database né
+rete. Ciò che non si riesce a provare facilmente è, di norma, mal progettato. \\
+
+\id{DG\_4} & Uniformità dei sottosistemi &
+I sottosistemi hanno la stessa struttura interna e le stesse convenzioni.
+Chi ne conosce uno sa orientarsi negli altri. \\
+
+\id{DG\_5} & Coerenza dei dati &
+Le operazioni che toccano più entità sono atomiche; gli invarianti che il
+database può garantire sono affidati al database. \\
+
+\id{DG\_6} & Costo di esercizio contenuto &
+Nessuna dipendenza da servizi a pagamento, nessuna infrastruttura oltre un
+processo applicativo e un DBMS. \\
+
+\end{longtable}
+
+\section{Compromessi}
+\label{sec:sdd-tradeoff}
+
+Gli obiettivi di progettazione entrano in conflitto fra loro. I compromessi
+che seguono sono le decisioni prese quando non era possibile soddisfarli
+tutti, con la ragione della scelta.
+
+\begin{longtable}{@{}L{3.6cm} L{4.2cm} L{6.4cm}@{}}
+\toprule
+\textbf{Compromesso} & \textbf{Alternativa scartata} & \textbf{Motivazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Compromesso} & \textbf{Alternativa scartata} & \textbf{Motivazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Sicurezza contro immediatezza della risposta &
+Correggere il quiz nel browser, evitando un giro di rete &
+La correzione locale renderebbe le soluzioni visibili prima della consegna,
+annullando il valore della verifica (\id{OB\_6}). Il costo è una richiesta
+HTTP: trascurabile rispetto a ciò che si guadagna. \\
+
+Uniformità contro concisione &
+Servizi ridotti a semplici passacarte verso i DAO &
+Alcuni servizi si limitano a delegare, e potrebbero essere eliminati. Sono
+stati mantenuti perché la loro assenza renderebbe i sottosistemi diversi fra
+loro senza un motivo di dominio (\id{DG\_4}). \\
+
+Coerenza contro indipendenza dal DBMS &
+Calcolare la valutazione media nel codice applicativo &
+La media è mantenuta da trigger. Il valore resta corretto anche di fronte a
+scritture concorrenti, al prezzo di una logica che vive nel database e non è
+verificata dai test unitari (\id{DG\_5}). \\
+
+Semplicità contro completezza funzionale &
+Recupero della password via email &
+Realizzarlo richiederebbe un servizio di posta transazionale e un dominio
+verificato, contro \id{DG\_6}. Il sistema rinuncia alla funzionalità e lo
+dichiara apertamente. \\
+
+Verificabilità contro fedeltà dei test &
+Test di integrazione su un database reale &
+La suite sostituisce il livello di persistenza con dei doppi: gira ovunque in
+pochi secondi (\id{DG\_3}), ma non verifica le query SQL, che restano coperte
+solo dalle prove manuali di sistema. \\
+
+\end{longtable}
+
+\begin{nota}
+L'ultimo compromesso è quello con il rischio residuo più alto ed è
+esplicitamente dichiarato anche nel Test Document: un errore in una query
+verrebbe intercettato solo all'esecuzione. È stato accettato perché il
+livello di persistenza è sottile e privo di logica condizionale, mentre il
+costo di un database nella catena di integrazione continua sarebbe permanente.
+\end{nota}
+
+\section{Definizioni e riferimenti}
+
+I termini del dominio e quelli tecnici sono definiti nel
+\cref{cap:glossario}, condiviso con gli altri documenti del progetto. Il
+documento presuppone la lettura del RAD, di cui riprende identificativi di
+requisiti e casi d'uso senza ridefinirli.

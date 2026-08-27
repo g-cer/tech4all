@@ -1,0 +1,439 @@
+\chapter{Modelli del sistema}
+\label{cap:rad-modelli}
+
+\section{Scenari}
+\label{sec:rad-scenari}
+
+Gli scenari sono descrizioni concrete di episodi d'uso, con persone e dati
+specifici. Servono a far emergere i casi d'uso, non a documentarli: per
+questo sono pochi e scelti fra quelli che hanno effettivamente influenzato le
+decisioni di progetto. Ciascuno è seguito dall'osservazione che se ne è
+ricavata.
+
+\subsection{SC\_1 — Il primo contatto di Marta}
+
+\begin{nota}
+\textbf{Partecipante:} Marta, 68 anni, ha ricevuto un tablet in regalo e non
+sa come proteggere le proprie foto.
+\end{nota}
+
+Marta arriva su Tech4All da un motore di ricerca. Non ha alcun account e non
+intende crearne uno: vuole solo capire se il sito le serve. Vede l'elenco dei
+tutorial, riconosce nella categoria \enquote{Sicurezza} il titolo
+\enquote{Proteggere la tua privacy online} e lo apre. Legge il contenuto fino
+in fondo. In coda al tutorial trova un quiz e ne scorre le domande, ma quando
+prova a rispondere il sistema le segnala che deve essere registrata. A quel
+punto \emph{sa già che cosa otterrà} in cambio della registrazione, e la
+completa.
+
+\textbf{Osservazione.} La registrazione non deve essere una barriera
+d'ingresso, ma una conseguenza dell'interesse. Da qui \id{OB\_1} e la scelta
+di rendere pubblici catalogo, tutorial, feedback e testo dei quiz.
+
+\subsection{SC\_2 — Luigi non supera il quiz}
+
+\begin{nota}
+\textbf{Partecipante:} Luigi, 54 anni, ha letto il tutorial sulla navigazione
+in Internet ed è convinto di aver capito tutto.
+\end{nota}
+
+Luigi risponde alle cinque domande del quiz e conferma. Il sistema gli
+comunica che ha dato tre risposte corrette su cinque e che il quiz non è
+superato; accanto a ogni domanda compare la risposta giusta. Luigi si accorge
+di aver confuso il concetto di \enquote{connessione cifrata} e torna a
+rileggere quel passaggio del tutorial. Riprova il quiz e lo supera. Il
+sistema gli assegna il badge \enquote{Principiante}.
+
+\textbf{Osservazione.} L'esito negativo è parte del percorso, non un
+fallimento da nascondere: le soluzioni vanno mostrate subito dopo la
+consegna, e il quiz deve poter essere ripetuto. Da qui il modello degli stati
+di \cref{fig:rad-sc-svolgimento} e il requisito \id{RNF\_A\_4}, che impedisce
+a un tentativo peggiore di annullare un risultato già raggiunto.
+
+\subsection{SC\_3 — Anna pubblica un contenuto e lo corregge}
+
+\begin{nota}
+\textbf{Partecipante:} Anna, amministratrice della piattaforma.
+\end{nota}
+
+Anna redige un nuovo tutorial sull'uso della posta elettronica: inserisce il
+titolo, sceglie la categoria \enquote{Internet}, scrive il contenuto
+nell'editor inserendo due immagini e carica un'immagine di copertina. Alla
+conferma il sistema rifiuta la richiesta: il titolo che ha scelto è di tre
+caratteri. Lo corregge e il tutorial viene pubblicato. Rileggendolo si accorge
+di un refuso, riapre il tutorial in modifica, corregge il testo e rimuove una
+delle due immagini; salva senza ricaricare la copertina, che resta quella di
+prima.
+
+\textbf{Osservazione.} Pubblicazione e aggiornamento condividono forma e
+vincoli, ma differiscono su un punto: in aggiornamento la copertina è
+facoltativa. L'immagine rimossa dal contenuto non deve restare sul server.
+Da qui \id{UC\_14} come comportamento condiviso e \id{RF\_CT\_10}.
+
+\subsection{SC\_4 — Giulia ripensa al proprio giudizio}
+
+\begin{nota}
+\textbf{Partecipante:} Giulia, utente registrata, e Anna, amministratrice.
+\end{nota}
+
+Giulia lascia un feedback di due stelle su un tutorial che non ha capito.
+Qualche giorno dopo, riletto il contenuto con più calma, cambia idea: torna
+sulla pagina, ritrova il proprio giudizio e lo modifica in quattro stelle. La
+valutazione media del tutorial si aggiorna di conseguenza. Nello stesso
+tutorial un altro utente ha lasciato un commento offensivo; Anna lo elimina.
+
+\textbf{Osservazione.} Il feedback è un'opinione che può cambiare: va
+modificabile dall'autore, non solo cancellabile. La moderazione è un potere
+distinto dalla proprietà del dato. Da qui \id{UC\_12} con i suoi flussi
+alternativi e \id{RF\_FB\_6}.
+
+\section{Modello dei casi d'uso}
+\label{sec:rad-uc}
+
+\subsection{Diagrammi dei casi d'uso}
+
+I casi d'uso sono ripartiti in due diagrammi per leggibilità: quelli
+accessibili a visitatori e utenti (\cref{fig:rad-uc-utente}) e quelli
+riservati agli amministratori (\cref{fig:rad-uc-admin}). La relazione di
+generalizzazione fra gli attori (\cref{tab:rad-attori}) fa sì che
+l'amministratore disponga anche di tutti i casi d'uso del primo diagramma.
+
+\diagrammaLargo{uc-utente}{Casi d'uso di visitatore e utente.}{fig:rad-uc-utente}
+
+\diagrammaLargo{uc-amministratore}{Casi d'uso dell'amministratore.}{fig:rad-uc-admin}
+
+\begin{nota}
+\textbf{Uso di \texttt{include} ed \texttt{extend}.} Le due relazioni sono
+impiegate solo dove esprimono un fatto reale.
+\id{UC\_14} è in relazione di \texttt{include} con \id{UC\_13} e \id{UC\_15}
+perché il caricamento di un'immagine è un comportamento condiviso ed
+eseguito sempre come parte di essi.
+\id{UC\_10} estende \id{UC\_09} perché il conseguimento di un obiettivo
+avviene solo al verificarsi di una condizione, il raggiungimento di una
+soglia, e il quiz è compiuto anche senza di esso.
+L'autenticazione, invece, \emph{non} è modellata come \texttt{include}: è una
+precondizione dei casi d'uso riservati, non una loro parte.
+\end{nota}
+
+\subsection{Elenco dei casi d'uso}
+
+\begin{longtable}{@{}l L{4.6cm} L{2.4cm} L{4.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Nome} & \textbf{Attore} & \textbf{Precondizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Nome} & \textbf{Attore} & \textbf{Precondizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{UC\_01} & Registrarsi                      & Visitatore     & Nessuna \\
+\id{UC\_02} & Autenticarsi                     & Visitatore     & Account esistente \\
+\id{UC\_03} & Terminare la sessione            & Utente         & Sessione attiva \\
+\id{UC\_04} & Gestire il proprio profilo       & Utente         & Sessione attiva \\
+\id{UC\_05} & Eliminare il proprio account     & Utente         & Sessione attiva \\
+\id{UC\_06} & Consultare il catalogo           & Visitatore     & Nessuna \\
+\id{UC\_07} & Cercare un tutorial              & Visitatore     & Nessuna \\
+\id{UC\_08} & Consultare un tutorial           & Visitatore     & Il tutorial esiste \\
+\id{UC\_09} & Svolgere un quiz                 & Utente         & Il tutorial ha un quiz \\
+\id{UC\_10} & Conseguire un obiettivo          & Utente         & Quiz superato \\
+\id{UC\_11} & Consultare i propri progressi    & Utente         & Sessione attiva \\
+\id{UC\_12} & Gestire il proprio feedback      & Utente         & Il tutorial esiste \\
+\id{UC\_13} & Pubblicare un tutorial           & Amministratore & Ruolo amministratore \\
+\id{UC\_14} & Caricare un'immagine             & Amministratore & Ruolo amministratore \\
+\id{UC\_15} & Aggiornare un tutorial           & Amministratore & Il tutorial esiste \\
+\id{UC\_16} & Ritirare un tutorial             & Amministratore & Il tutorial esiste \\
+\id{UC\_17} & Definire il quiz di un tutorial  & Amministratore & Il tutorial esiste \\
+\id{UC\_18} & Rimuovere il quiz di un tutorial & Amministratore & Il quiz esiste \\
+\id{UC\_19} & Gestire gli obiettivi            & Amministratore & Ruolo amministratore \\
+\id{UC\_20} & Amministrare gli account         & Amministratore & Ruolo amministratore \\
+\id{UC\_21} & Moderare i feedback              & Amministratore & Il feedback esiste \\
+
+\end{longtable}
+
+\subsection{Specifica dei casi d'uso principali}
+
+Sono specificati in forma estesa i casi d'uso il cui flusso non è deducibile
+dal nome: quelli con più flussi alternativi o con conseguenze sullo stato del
+sistema. Per gli altri, l'elenco precedente e i requisiti funzionali
+dell'appendice~\ref{cap:rad-app-requisiti} sono sufficienti.
+
+\paragraph{UC\_01 — Registrarsi}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{3.2cm} L{11.0cm}@{}}
+\toprule
+Attore & Visitatore \\
+Precondizione & Il visitatore non è autenticato. \\
+Postcondizione (successo) & Esiste un nuovo account con ruolo \emph{utente} e il
+  visitatore è autenticato. \\
+Postcondizione (fallimento) & Nessun account è stato creato. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{Flusso principale}} \\
+\midrule
+1. Visitatore & Richiede la registrazione. \\
+2. Sistema & Presenta il modulo con nome, cognome, email e password. \\
+3. Visitatore & Compila i campi e conferma. \\
+4. Sistema & Verifica la forma dei dati e la politica della password. \\
+5. Sistema & Verifica che l'email non sia già associata a un account. \\
+6. Sistema & Registra l'account conservando la password come hash. \\
+7. Sistema & Apre la sessione e mostra la pagina iniziale autenticata. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A1 — Email già registrata (passo 5)}} \\
+\midrule
+5a. Sistema & Segnala che l'email è già in uso e torna al passo 3. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A2 — Dati non conformi (passo 4)}} \\
+\midrule
+4a. Sistema & Elenca i campi non conformi e torna al passo 3. \\
+\bottomrule
+\end{tabular}
+\caption{Caso d'uso \id{UC\_01} — Registrarsi.}
+\label{tab:uc01}
+\end{table}
+
+\paragraph{UC\_09 — Svolgere un quiz}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{3.2cm} L{11.0cm}@{}}
+\toprule
+Attore & Utente \\
+Precondizione & L'utente è autenticato e il tutorial ha un quiz associato. \\
+Postcondizione (successo) & Lo svolgimento è registrato; se il quiz è superato,
+  il conteggio dei quiz superati è aggiornato. \\
+Postcondizione (fallimento) & Lo stato dell'utente resta invariato. \\
+Punto di estensione & \emph{Traguardo raggiunto}, al passo 7. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{Flusso principale}} \\
+\midrule
+1. Utente & Apre la sezione quiz di un tutorial. \\
+2. Sistema & Presenta le domande con le opzioni di risposta, senza
+  indicare quale sia corretta. \\
+3. Utente & Seleziona una risposta per ciascuna domanda. \\
+4. Utente & Consegna il quiz. \\
+5. Sistema & Confronta le risposte con le soluzioni e conta quelle esatte. \\
+6. Sistema & Determina l'esito: superato se le risposte esatte sono almeno il
+  70\% del totale. \\
+7. Sistema & Registra lo svolgimento e ricalcola i quiz superati dall'utente. \\
+8. Sistema & Mostra esito, numero di risposte esatte e soluzioni. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{E1 — Traguardo raggiunto (estende il passo 7)}} \\
+\midrule
+7a. Sistema & Per ogni obiettivo la cui soglia è ora raggiunta e non ancora
+  conseguito, registra il conseguimento. \\
+7b. Sistema & Include i badge appena sbloccati nella risposta del passo 8. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A1 — Quiz già superato (passo 7)}} \\
+\midrule
+7c. Sistema & Non sovrascrive lo svolgimento esistente: l'esito positivo
+  già acquisito resta invariato. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A2 — Risposte incomplete (passo 4)}} \\
+\midrule
+4a. Sistema & Non consente la consegna finché ogni domanda non ha una
+  risposta selezionata. \\
+\bottomrule
+\end{tabular}
+\caption{Caso d'uso \id{UC\_09} — Svolgere un quiz.}
+\label{tab:uc09}
+\end{table}
+
+\paragraph{UC\_12 — Gestire il proprio feedback}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{3.2cm} L{11.0cm}@{}}
+\toprule
+Attore & Utente \\
+Precondizione & L'utente è autenticato e il tutorial esiste. \\
+Postcondizione (successo) & Il feedback dell'utente sul tutorial riflette
+  l'ultima operazione; la valutazione media del tutorial è aggiornata. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{Flusso principale — inserimento}} \\
+\midrule
+1. Utente & Richiede di lasciare un feedback su un tutorial. \\
+2. Sistema & Presenta il modulo con valutazione da 1 a 5 e commento. \\
+3. Utente & Compila e conferma. \\
+4. Sistema & Verifica i vincoli su valutazione e lunghezza del commento. \\
+5. Sistema & Verifica che l'utente non abbia già valutato quel tutorial. \\
+6. Sistema & Registra il feedback e aggiorna la valutazione media. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A1 — Feedback già presente (passo 5)}} \\
+\midrule
+5a. Sistema & Propone la modifica del feedback esistente anziché
+  l'inserimento di uno nuovo. \\
+5b. Utente & Modifica valutazione e commento e conferma. \\
+5c. Sistema & Aggiorna il feedback e ricalcola la valutazione media. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A2 — Ritiro del feedback}} \\
+\midrule
+1a. Utente & Richiede l'eliminazione del proprio feedback. \\
+1b. Sistema & Chiede conferma, elimina il feedback e ricalcola la
+  valutazione media. \\
+\bottomrule
+\end{tabular}
+\caption{Caso d'uso \id{UC\_12} — Gestire il proprio feedback.}
+\label{tab:uc12}
+\end{table}
+
+\paragraph{UC\_17 — Definire il quiz di un tutorial}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{3.2cm} L{11.0cm}@{}}
+\toprule
+Attore & Amministratore \\
+Precondizione & Il tutorial esiste e l'attore ha ruolo amministratore. \\
+Postcondizione (successo) & Il tutorial ha un quiz le cui domande sono quelle
+  indicate. \\
+Postcondizione (fallimento) & Il quiz preesistente, se c'era, resta invariato. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{Flusso principale}} \\
+\midrule
+1. Amministratore & Richiede di definire il quiz di un tutorial. \\
+2. Sistema & Presenta il modulo delle domande; se un quiz esiste già, ne
+  ripropone le domande. \\
+3. Amministratore & Per ogni domanda inserisce il testo, le opzioni di
+  risposta e indica quella corretta. \\
+4. Amministratore & Conferma. \\
+5. Sistema & Verifica che ogni domanda abbia da 2 a 5 opzioni ed
+  esattamente una risposta corretta. \\
+6. Sistema & Registra il quiz in un'unica transazione. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A1 — Quiz già esistente (passo 6)}} \\
+\midrule
+6a. Sistema & Sostituisce integralmente le domande precedenti. \\
+6b. Sistema & Conserva gli svolgimenti registrati: si riferiscono al quiz,
+  non alle singole domande. \\
+\midrule
+\multicolumn{2}{@{}l@{}}{\textbf{A2 — Vincoli non rispettati (passo 5)}} \\
+\midrule
+5a. Sistema & Segnala la violazione e non registra alcuna modifica. \\
+\bottomrule
+\end{tabular}
+\caption{Caso d'uso \id{UC\_17} — Definire il quiz di un tutorial.}
+\label{tab:uc17}
+\end{table}
+
+\section{Modello a oggetti}
+\label{sec:rad-object-model}
+
+\subsection{Oggetti entity}
+
+Il modello a oggetti dell'analisi (\cref{fig:rad-cd-entity}) descrive i
+concetti del dominio e le loro relazioni, non le classi che li realizzano:
+non compaiono identificativi tecnici né tipi di dato.
+
+\diagramma{0.86}{cd-analisi-entity}{Modello a oggetti dell'analisi: oggetti
+entity, associazioni e molteplicità.}{fig:rad-cd-entity}
+
+Tre concetti — \emph{Feedback}, \emph{Svolgimento} e \emph{Conseguimento} —
+sono modellati come \term{classi di associazione}. Nessuno dei tre ha
+esistenza indipendente dalla coppia di oggetti che collega: un feedback senza
+un utente e un tutorial non significa nulla, e la coppia identifica
+univocamente l'istanza. Questa scelta rende esplicito nel modello ciò che
+altrimenti resterebbe una convenzione implicita, e si traduce direttamente
+nelle chiavi primarie composte del modello dei dati.
+
+Le altre relazioni notevoli sono le due composizioni: un quiz appartiene a un
+solo tutorial e non gli sopravvive; una domanda appartiene a un solo quiz e
+una risposta a una sola domanda. La molteplicità \id{2..5} sulle risposte e
+il vincolo di un'unica risposta corretta sono i due invarianti che il sistema
+deve garantire su ogni domanda.
+
+\subsection{Oggetti boundary e control}
+
+La \cref{fig:rad-cd-bce} completa il modello con gli oggetti di confine e di
+controllo. Gli oggetti boundary rappresentano il confine fra sistema e
+attori a livello di analisi: corrispondono alle aree funzionali
+dell'interfaccia, non ai singoli elementi grafici. Gli oggetti control
+coordinano i casi d'uso e sono l'unico tramite fra boundary ed entity.
+
+\diagramma{0.92}{cd-analisi-bce}{Oggetti boundary, control ed entity.}
+{fig:rad-cd-bce}
+
+L'unica dipendenza fra oggetti control è quella di \emph{GestoreQuiz} verso
+\emph{GestoreObiettivi}: riflette il fatto che il conseguimento di un badge
+non è un caso d'uso autonomo ma una conseguenza del superamento di un quiz,
+come già espresso dalla relazione di estensione fra \id{UC\_09} e
+\id{UC\_10}.
+
+\section{Modello dinamico}
+\label{sec:rad-dynamic}
+
+\subsection{Diagrammi di sequenza}
+
+I due diagrammi di sequenza descrivono i flussi in cui più oggetti
+collaborano in modo non ovvio. Non sono stati prodotti diagrammi per i casi
+d'uso in cui un oggetto control si limita a leggere o scrivere una entity:
+non aggiungerebbero informazione al modello a oggetti.
+
+\diagramma{0.98}{sd-svolgimento-quiz}{\id{SD\_01} — Svolgimento di un quiz con
+conseguimento di un obiettivo (\id{UC\_09}, \id{UC\_10}).}{fig:rad-sd-quiz}
+
+Il diagramma rende visibile la decisione più importante del sistema: le
+soluzioni sono lette dal gestore del quiz e non attraversano mai il confine
+verso l'attore prima della consegna.
+
+\diagramma{0.86}{sd-pubblicazione-tutorial}{\id{SD\_02} — Pubblicazione di un
+tutorial (\id{UC\_13}).}{fig:rad-sd-tutorial}
+
+\subsection{Diagrammi di stato}
+
+Sono modellati gli stati dei due concetti che ne hanno davvero: lo
+svolgimento di un quiz da parte di un utente e il tutorial nel catalogo. Le
+altre entità hanno un ciclo di vita banale (creazione, modifica,
+cancellazione) e non giustificano un diagramma.
+
+\diagramma{0.82}{sc-svolgimento}{\id{SC\_01} — Stati dello svolgimento di un
+quiz.}{fig:rad-sc-svolgimento}
+
+Lo stato \emph{Superato} è assorbente rispetto all'esito: da esso si può
+tornare in compilazione, ma nessun tentativo successivo lo declassa. È la
+formulazione precisa del requisito \id{RNF\_A\_4}.
+
+\diagramma{0.82}{sc-tutorial}{\id{SC\_02} — Stati di un tutorial nel
+catalogo.}{fig:rad-sc-tutorial}
+
+\section{Interfaccia utente}
+\label{sec:rad-ui}
+
+\subsection{Percorsi di navigazione}
+
+La \cref{fig:rad-np} descrive le pagine del sistema e le transizioni fra
+esse. Le cinque pagine raggiungibili senza autenticazione sono quelle che
+realizzano \id{OB\_1}; le altre reindirizzano all'accesso quando la sessione
+è assente.
+
+\diagramma{0.92}{np-navigazione}{Percorsi di navigazione.}{fig:rad-np}
+
+\subsection{Prototipi di interfaccia}
+
+I prototipi che seguono fissano la disposizione degli elementi e le
+informazioni presenti in ciascuna schermata; non descrivono l'aspetto
+grafico, che è materia della brand identity. Sono riportate solo le
+schermate che introducono un elemento nuovo: le pagine di accesso e
+registrazione, essendo moduli convenzionali, sono omesse.
+
+\diagramma{0.72}{mu-catalogo}{\id{MU\_1} — Catalogo dei tutorial. Il pulsante
+di creazione compare solo agli amministratori.}{fig:rad-mu-catalogo}
+
+\diagramma{0.66}{mu-tutorial}{\id{MU\_2} — Tutorial, con le tre sezioni
+contenuto, quiz e feedback.}{fig:rad-mu-tutorial}
+
+\diagramma{0.62}{mu-quiz}{\id{MU\_3} — Svolgimento del quiz: nessun elemento
+distingue la risposta corretta.}{fig:rad-mu-quiz}
+
+\diagramma{0.62}{mu-esito-quiz}{\id{MU\_4} — Esito del quiz: le soluzioni
+compaiono solo ora, insieme all'eventuale badge.}{fig:rad-mu-esito}
+
+\diagramma{0.66}{mu-area-personale}{\id{MU\_5} — Area personale, sezione
+obiettivi: i badge non ancora conseguiti restano visibili come
+traguardo.}{fig:rad-mu-area}
+
+\diagramma{0.60}{mu-redazione-tutorial}{\id{MU\_6} — Redazione di un
+tutorial.}{fig:rad-mu-redazione}

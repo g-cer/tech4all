@@ -1,0 +1,44 @@
+@startuml
+!include _stile.puml
+
+top to bottom direction
+
+actor "Visitatore" as V
+actor "Utente" as U
+
+V <|-- U
+
+rectangle "Tech4All" {
+  usecase "UC_01\nRegistrarsi"                   as UC01
+  usecase "UC_02\nAutenticarsi"                  as UC02
+  usecase "UC_03\nTerminare\nla sessione"        as UC03
+  usecase "UC_04\nGestire il\nproprio profilo"   as UC04
+  usecase "UC_05\nEliminare il\nproprio account" as UC05
+
+  usecase "UC_06\nConsultare\nil catalogo"       as UC06
+  usecase "UC_07\nCercare\nun tutorial"          as UC07
+  usecase "UC_08\nConsultare\nun tutorial"       as UC08
+
+  usecase "UC_09\nSvolgere\nun quiz"             as UC09
+  usecase "UC_10\nConseguire\nun obiettivo"      as UC10
+  usecase "UC_11\nConsultare i\npropri progressi" as UC11
+
+  usecase "UC_12\nGestire il\nproprio feedback"  as UC12
+}
+
+V --> UC01
+V --> UC02
+V --> UC06
+V --> UC08
+
+U --> UC03
+U --> UC04
+U --> UC05
+U --> UC09
+U --> UC11
+U --> UC12
+
+UC07 .> UC06 : <<extend>>
+UC10 .> UC09 : <<extend>>
+
+@enduml

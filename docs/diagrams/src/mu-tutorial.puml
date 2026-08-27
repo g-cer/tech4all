@@ -1,0 +1,29 @@
+@startsalt
+skinparam backgroundColor transparent
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam shadowing false
+{
+  {* <b>Tech4All | Catalogo | Chi siamo | Profilo }
+  ==
+  {
+    <b>Proteggere la tua privacy online | [ Modifica ] | [ Elimina ]
+  }
+  ..
+  {/ <b>Tutorial | Quiz | Feedback }
+  {+
+    <i>[ immagine di copertina ]
+    .
+    <b>Introduzione
+    Mantenere la privacy online è essenziale in un'era digitale
+    in cui ogni azione può essere registrata. Ecco alcuni
+    suggerimenti pratici per proteggere i tuoi dati personali.
+    .
+    <b>1. Utilizza password sicure
+    Usa combinazioni di lettere maiuscole, minuscole, numeri
+    e simboli, e cambiale regolarmente.
+  }
+  ..
+  [ Torna al catalogo ]
+}
+@endsalt

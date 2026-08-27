@@ -1,0 +1,29 @@
+@startsalt
+skinparam backgroundColor transparent
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam shadowing false
+{
+  {* <b>Tech4All | Catalogo | Chi siamo | Profilo }
+  ==
+  {/ Tutorial | <b>Quiz | Feedback }
+  {+
+    <b>1. Che cosa rende sicura una password?
+    ( ) Essere corta e facile da ricordare
+    (X) <b>Combinare lettere, numeri e simboli  ✓
+    ( ) Coincidere con il nome utente
+    .
+    <b>2. Che cosa fa una VPN?
+    ( ) <b>Cifra la connessione  ✓
+    (X) Accelera il computer  ✗
+    ( ) Elimina i file inutili
+  }
+  ..
+  {+
+    <b>Quiz superato: 4 risposte corrette su 5.
+    .
+    <b>Hai sbloccato un nuovo traguardo:
+    <i>[ badge ]  Principiante
+  }
+}
+@endsalt

@@ -1,0 +1,172 @@
+\chapter{Requisiti funzionali in forma tabellare}
+\label{cap:rad-app-requisiti}
+
+Questa appendice riporta la formulazione completa dei requisiti funzionali
+introdotti in \cref{sec:rad-rf}. La colonna \emph{Attore} indica il ruolo
+minimo richiesto: \emph{Visitatore} significa che l'operazione è accessibile
+anche senza autenticazione.
+
+\section{Accesso e gestione dell'account}
+
+\begin{longtable}{@{}l L{7.3cm} L{2.6cm} L{1.8cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_AU\_1} & registrarsi fornendo nome, cognome, email e password &
+  Visitatore & Alta \\
+\id{RF\_AU\_2} & autenticarsi con email e password, ottenendo una sessione &
+  Visitatore & Alta \\
+\id{RF\_AU\_3} & chiudere la propria sessione & Utente & Alta \\
+\id{RF\_AU\_4} & consultare i dati del proprio profilo & Utente & Alta \\
+\id{RF\_AU\_5} & verificare se un'email è già associata a un account &
+  Visitatore & Bassa \\
+\id{RF\_AU\_6} & modificare nome, cognome ed email del proprio account &
+  Utente & Media \\
+\id{RF\_AU\_7} & cambiare la propria password esibendo quella attuale &
+  Utente & Media \\
+\id{RF\_AU\_8} & eliminare definitivamente il proprio account & Utente & Media \\
+\id{RF\_AU\_9} & consultare l'elenco degli utenti registrati &
+  Amministratore & Media \\
+\id{RF\_AU\_10} & eliminare l'account di un altro utente &
+  Amministratore & Media \\
+
+\end{longtable}
+
+\section{Catalogo dei tutorial}
+
+\begin{longtable}{@{}l L{7.3cm} L{2.6cm} L{1.8cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_CT\_1} & consultare l'elenco completo dei tutorial pubblicati &
+  Visitatore & Alta \\
+\id{RF\_CT\_2} & restringere l'elenco a una categoria & Visitatore & Alta \\
+\id{RF\_CT\_3} & cercare i tutorial per parola chiave su titolo, contenuto e
+  categoria & Visitatore & Alta \\
+\id{RF\_CT\_4} & consultare un singolo tutorial & Visitatore & Alta \\
+\id{RF\_CT\_5} & conoscere l'elenco delle categorie ammesse &
+  Visitatore & Bassa \\
+\id{RF\_CT\_6} & pubblicare un tutorial con titolo, categoria, contenuto e
+  immagine di copertina & Amministratore & Alta \\
+\id{RF\_CT\_7} & aggiornare un tutorial esistente, con copertina facoltativa &
+  Amministratore & Alta \\
+\id{RF\_CT\_8} & ritirare un tutorial dal catalogo & Amministratore & Alta \\
+\id{RF\_CT\_9} & caricare un'immagine da inserire nel contenuto &
+  Amministratore & Media \\
+\id{RF\_CT\_10} & rimuovere un'immagine non più referenziata &
+  Amministratore & Bassa \\
+
+\end{longtable}
+
+\section{Quiz}
+
+\begin{longtable}{@{}l L{7.3cm} L{2.6cm} L{1.8cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_QZ\_1} & consultare le domande del quiz di un tutorial, senza
+  indicazione delle risposte corrette & Visitatore & Alta \\
+\id{RF\_QZ\_2} & consegnare le proprie risposte e ricevere esito, numero di
+  risposte esatte, soluzioni ed eventuali badge sbloccati & Utente & Alta \\
+\id{RF\_QZ\_3} & definire le domande del quiz di un tutorial &
+  Amministratore & Alta \\
+\id{RF\_QZ\_4} & sostituire integralmente le domande di un quiz esistente &
+  Amministratore & Media \\
+\id{RF\_QZ\_5} & rimuovere il quiz di un tutorial & Amministratore & Media \\
+
+\end{longtable}
+
+\section{Feedback}
+
+\begin{longtable}{@{}l L{7.3cm} L{2.6cm} L{1.8cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_FB\_1} & consultare i feedback ricevuti da un tutorial &
+  Visitatore & Alta \\
+\id{RF\_FB\_2} & consultare i propri feedback & Utente & Media \\
+\id{RF\_FB\_3} & lasciare un feedback su un tutorial, al più uno per tutorial &
+  Utente & Alta \\
+\id{RF\_FB\_4} & modificare il proprio feedback & Utente & Media \\
+\id{RF\_FB\_5} & eliminare il proprio feedback & Utente & Media \\
+\id{RF\_FB\_6} & eliminare il feedback di un altro utente a fini di
+  moderazione & Amministratore & Media \\
+
+\end{longtable}
+
+\section{Obiettivi e badge}
+
+\begin{longtable}{@{}l L{7.3cm} L{2.6cm} L{1.8cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Il sistema deve permettere di\dots} & \textbf{Attore} &
+\textbf{Priorità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_OB\_1} & consultare gli obiettivi raggiungibili e le relative soglie &
+  Visitatore & Media \\
+\id{RF\_OB\_2} & consultare i badge conseguiti e la data di conseguimento &
+  Utente & Media \\
+\id{RF\_OB\_3} & ottenere automaticamente un badge quando il numero di quiz
+  superati raggiunge la soglia di un obiettivo & Utente & Alta \\
+\id{RF\_OB\_4} & definire un obiettivo con nome, descrizione, badge e soglia &
+  Amministratore & Media \\
+\id{RF\_OB\_5} & aggiornare descrizione, badge e soglia di un obiettivo &
+  Amministratore & Bassa \\
+\id{RF\_OB\_6} & eliminare un obiettivo & Amministratore & Bassa \\
+
+\end{longtable}
+
+\begin{nota}
+\id{RF\_OB\_3} è l'unico requisito funzionale che non corrisponde a
+un'operazione richiesta da un attore: descrive una reazione del sistema. È
+elencato fra i requisiti funzionali perché rappresenta un comportamento
+osservabile e verificabile, ed è modellato come estensione di \id{UC\_09}.
+\end{nota}

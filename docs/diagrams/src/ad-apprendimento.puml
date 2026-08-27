@@ -1,0 +1,65 @@
+@startuml
+!include _stile.puml
+
+title Percorso di apprendimento nel sistema proposto
+
+|Utente|
+start
+:Consulta il catalogo;
+
+if (Sa cosa cerca?) then (sì)
+  :Cerca per parola chiave\no filtra per categoria;
+else (no)
+  :Sfoglia le categorie;
+endif
+
+:Apre un tutorial;
+:Legge il contenuto;
+
+if (Il tutorial ha un quiz?) then (no)
+  |Utente|
+  :Passa a un altro tutorial;
+  stop
+else (sì)
+endif
+
+if (È autenticato?) then (no)
+  |Utente|
+  :Si registra o accede;
+else (sì)
+endif
+
+repeat
+  |Utente|
+  :Risponde a tutte le domande;
+  :Consegna il quiz;
+
+  |Sistema|
+  :Corregge le risposte;
+  :Registra lo svolgimento;
+
+  if (Risposte corrette >= 70%?) then (sì)
+    :Segna il quiz come superato;
+    :Ricalcola i quiz superati;
+    if (È stata raggiunta la soglia\ndi un obiettivo?) then (sì)
+      :Assegna il badge;
+    else (no)
+    endif
+  else (no)
+  endif
+
+  |Utente|
+  :Vede l'esito e le soluzioni;
+repeat while (Vuole riprovare?) is (sì) not (no)
+
+if (Vuole lasciare un giudizio?) then (sì)
+  |Utente|
+  :Inserisce valutazione e commento;
+  |Sistema|
+  :Registra il feedback e\naggiorna la media del tutorial;
+else (no)
+endif
+
+stop
+
+@enduml

@@ -1,0 +1,117 @@
+\chapter{Introduzione}
+\label{cap:rad-introduzione}
+
+\section{Scopo del documento}
+
+Questo documento definisce i requisiti della piattaforma Tech4All. Ne descrive
+il dominio applicativo, gli attori che vi interagiscono, le funzionalità
+offerte e le qualità che il sistema deve esibire, senza entrare nel merito
+delle scelte realizzative, che sono trattate nel System Design Document.
+
+Il documento segue l'impostazione di Bruegge e Dutoit~\cite{bruegge2010}: dalla
+descrizione del sistema esistente si passa al sistema proposto, dai requisiti
+si risale agli scenari e da questi ai modelli di analisi. L'unico scostamento
+dalla struttura del testo di riferimento è la promozione dei modelli del
+sistema a capitolo autonomo (\cref{cap:rad-modelli}), scelta dettata dalla
+leggibilità e priva di conseguenze metodologiche.
+
+Il perimetro del sistema è definito in modo esplicito nelle due direzioni:
+\cref{sec:rad-fuori-perimetro} elenca le funzionalità che il progetto ha
+deciso di non realizzare, con la motivazione di ciascuna esclusione. Un
+requisito assente per scelta e un requisito dimenticato producono lo stesso
+sistema, ma non la stessa possibilità di discuterne.
+
+\section{Ambito del sistema}
+
+Tech4All è un'applicazione web per l'alfabetizzazione digitale. Si rivolge a
+persone con poca dimestichezza con gli strumenti informatici e propone un
+percorso in tre momenti: la lettura di un \term{tutorial}, la verifica
+tramite un \term{quiz} a scelta multipla e il riconoscimento dei progressi
+attraverso \term{badge} assegnati automaticamente.
+
+Rientrano nell'ambito del sistema:
+
+\begin{itemize}
+  \item la pubblicazione e la consultazione di un catalogo di tutorial
+        classificati per categoria;
+  \item la verifica dell'apprendimento tramite quiz corretti dal sistema;
+  \item la raccolta di valutazioni degli utenti sui contenuti;
+  \item il riconoscimento dei traguardi raggiunti;
+  \item l'amministrazione di contenuti, obiettivi e account.
+\end{itemize}
+
+Non rientrano nell'ambito del sistema la produzione dei contenuti didattici
+(redatti dagli amministratori con gli strumenti offerti dalla piattaforma),
+l'erogazione di percorsi certificati e qualunque forma di tutoraggio umano.
+
+\section{Obiettivi e criteri di successo}
+\label{sec:rad-obiettivi}
+
+Gli obiettivi del progetto sono formulati in modo da poter essere verificati.
+A ciascuno corrisponde un criterio osservabile, riportato in
+\cref{tab:rad-obiettivi}.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}l L{5.6cm} L{6.3cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Obiettivo} & \textbf{Criterio di successo} \\
+\midrule
+\id{OB\_1} &
+Rendere i contenuti accessibili senza barriere d'ingresso &
+Il catalogo e il singolo tutorial sono consultabili senza autenticazione. \\
+
+\id{OB\_2} &
+Permettere all'utente di verificare ciò che ha appreso &
+Ogni tutorial può avere un quiz; l'esito è calcolato dal sistema e
+comunicato immediatamente. \\
+
+\id{OB\_3} &
+Restituire all'utente una misura del proprio progresso &
+Il numero di quiz superati e i badge conseguiti sono consultabili
+nell'area personale. \\
+
+\id{OB\_4} &
+Raccogliere il giudizio degli utenti sui contenuti &
+Ogni utente può lasciare al più un feedback per tutorial; la media è
+mostrata nel catalogo. \\
+
+\id{OB\_5} &
+Garantire che i dati personali siano trattati in modo sicuro &
+Le password sono conservate solo come hash; nessuna operazione di
+modifica è possibile senza una sessione valida. \\
+
+\id{OB\_6} &
+Impedire che il quiz possa essere superato aggirando la verifica &
+Le soluzioni non sono trasmesse al client prima della consegna e la
+correzione avviene solo sul server. \\
+\bottomrule
+\end{tabular}
+\caption{Obiettivi del sistema e relativi criteri di successo.}
+\label{tab:rad-obiettivi}
+\end{table}
+
+\section{Struttura del documento}
+
+Il \cref{cap:rad-sistema-corrente} descrive la situazione che il sistema
+intende migliorare. Il \cref{cap:rad-sistema-proposto} introduce il sistema
+proposto, ne individua gli attori ed elenca i requisiti funzionali e non
+funzionali. Il \cref{cap:rad-modelli} raccoglie i modelli di analisi:
+scenari, casi d'uso, modello a oggetti, modello dinamico e interfaccia
+utente. Il \cref{cap:glossario} fissa il linguaggio del dominio.
+
+Le due appendici raccolgono il materiale di consultazione:
+l'appendice~\ref{cap:rad-app-requisiti} riporta i requisiti in forma tabellare
+completa, l'appendice~\ref{cap:rad-app-tracciabilita} la matrice che lega requisiti,
+casi d'uso e scenari.
+
+\section{Riferimenti}
+
+Il documento fa riferimento a Bruegge e Dutoit~\cite{bruegge2010} per il
+processo e la notazione, a Fowler~\cite{fowler2003} per l'uso di UML e a
+ISO/IEC 25010~\cite{iso25010} per la classificazione delle qualità del
+software, adottata come complemento al modello FURPS+.
+
+Gli altri documenti del progetto sono il System Design Document, che descrive
+architettura e progettazione degli oggetti, e il Test Document, che descrive
+strategia, casi di test e risultati.

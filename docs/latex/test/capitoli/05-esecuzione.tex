@@ -1,0 +1,324 @@
+\chapter{Esecuzione e risultati}
+\label{cap:td-esecuzione}
+
+\section{Esito complessivo}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{7.6cm} r@{}}
+\toprule
+\textbf{Grandezza} & \textbf{Valore} \\
+\midrule
+Suite eseguite            & 13 \\
+Casi di test eseguiti     & 232 \\
+Casi superati             & 232 \\
+Casi falliti              & 0 \\
+Tempo di esecuzione       & inferiore a 10 secondi \\
+\bottomrule
+\end{tabular}
+\caption{Esito dell'esecuzione della suite automatica.}
+\label{tab:td-esito}
+\end{table}
+
+Il numero di asserzioni eseguite non coincide con quello dei casi specificati
+nel \cref{cap:td-casi} per due ragioni. Alcuni casi sono parametrici: un solo
+caso specificato, come \id{TC\_AX\_01}, corrisponde a un'asserzione ripetuta
+su ciascuna delle rotte riservate. Le nove prove di sistema, viceversa, sono
+manuali e non compaiono fra le asserzioni automatiche. La corrispondenza fra
+le due numerazioni è riportata nella tabella seguente.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{6.2cm} r r@{}}
+\toprule
+\textbf{Area} & \textbf{Casi specificati} & \textbf{Asserzioni eseguite} \\
+\midrule
+Autenticazione                & 14 & 29 \\
+Gestione account              & 10 & 13 \\
+Gestione tutorial             & 21 & 28 \\
+Gestione quiz                 & 30 & 29 \\
+Gestione feedback             &  8 & 17 \\
+Gestione obiettivi            & 18 & 19 \\
+Serializzazione e validazione &  — & 25 \\
+Controllo degli accessi       & 12 & 50 \\
+Infrastruttura                & 14 & 22 \\
+Prove di sistema (manuali)    &  9 & — \\
+\midrule
+\textbf{Totale}               & \textbf{136} & \textbf{232} \\
+\bottomrule
+\end{tabular}
+\caption{Casi di test specificati e asserzioni effettivamente eseguite.}
+\label{tab:td-conteggi}
+\end{table}
+
+\begin{nota}
+L'area \enquote{Gestione quiz} è l'unica in cui le asserzioni sono meno dei
+casi specificati: tre casi relativi al livello HTTP sono contati nell'area
+\enquote{Serializzazione e validazione}, dove risiede la suite che li
+contiene. La ripartizione delle asserzioni segue l'organizzazione dei file di
+test, quella dei casi segue l'organizzazione funzionale del documento.
+\end{nota}
+
+\section{Difetti individuati e risolti}
+\label{sec:td-difetti}
+
+I difetti elencati sono stati individuati durante la realizzazione del
+sistema, in tre modi distinti: dall'analisi statica e dal controllo dei tipi,
+dalla scrittura dei casi di test, e dalle prove di sistema. Tutti sono
+chiusi. Sono riportati perché rendono conto di che cosa la verifica ha
+effettivamente trovato, e perché la loro distribuzione dice qualcosa su quale
+tecnica ha reso di più.
+
+\subsection{Difetti di sicurezza}
+
+\begin{longtable}{@{}l L{5.6cm} L{6.4cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{DF\_01} &
+Le password erano confrontate in chiaro e conservate senza hashing. &
+Hashing bcrypt in registrazione e confronto in accesso.
+\id{TC\_AU\_04}. \\
+
+\id{DF\_02} &
+La risposta all'accesso conteneva la password, che veniva conservata nel
+browser. &
+Introdotto il livello DTO. \id{TC\_AU\_11}. \\
+
+\id{DF\_03} &
+Nessuna rotta verificava identità o ruolo: qualunque chiamante poteva
+eliminare contenuti e leggere l'elenco degli utenti. &
+Middleware di autenticazione e autorizzazione.
+\id{TC\_AX\_01}--\id{TC\_AX\_06}. \\
+
+\id{DF\_04} &
+L'autore di feedback e svolgimenti era preso dal corpo della richiesta. &
+L'identità è ricavata dalla sessione. \id{TC\_AX\_09}, \id{TC\_AX\_10}. \\
+
+\id{DF\_05} &
+Il contenuto dei tutorial era memorizzato senza sanificazione e reso come
+HTML. &
+Sanificazione in ingresso. \id{TC\_CT\_07}, \id{TC\_CT\_08}. \\
+
+\id{DF\_06} &
+L'eliminazione di un'immagine accettava un percorso arbitrario, consentendo
+di uscire dalla cartella consentita. &
+Solo nomi semplici, risolti e verificati.
+\id{TC\_IN\_04}--\id{TC\_IN\_11}. \\
+
+\id{DF\_07} &
+Le risposte corrette dei quiz erano inviate al client, che calcolava l'esito. &
+Correzione lato server e rimozione del campo dalla rappresentazione.
+\id{TC\_QZ\_29}. \\
+
+\end{longtable}
+
+\subsection{Difetti funzionali}
+
+\begin{longtable}{@{}l L{5.6cm} L{6.4cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{DF\_08} &
+Le risposte dell'utente erano associate alle domande per posizione: un ordine
+di presentazione diverso produceva una correzione errata in silenzio. &
+Associazione per identificativo. \id{TC\_QZ\_18}. \\
+
+\id{DF\_09} &
+Il contatore dei quiz superati veniva incrementato a ogni superamento, anche
+ripetendo un quiz già superato: i badge venivano assegnati per traguardi mai
+raggiunti. &
+Il valore è ricalcolato dagli svolgimenti registrati.
+\id{TC\_QZ\_21}, \id{TC\_QZ\_23}. \\
+
+\id{DF\_10} &
+La soglia di superamento era $> 70\%$ nel client e $\ge 70\%$ nel server: un
+punteggio esattamente pari alla soglia produceva esiti discordanti. &
+Soglia unica, definita in un solo punto. \id{TC\_QZ\_17}. \\
+
+\id{DF\_11} &
+Il limite di lunghezza del commento era 500 caratteri nell'applicazione e 280
+nel database: un commento fra i due valori era accettato e poi rifiutato dal
+DBMS. &
+Limite allineato a 500 su entrambi i livelli.
+\id{TC\_FB\_06}, \id{TC\_SY\_06}. \\
+
+\id{DF\_12} &
+Costruzione di oggetti \id{Risposta} con argomenti in ordine errato e
+riferimenti a colonne inesistenti nel livello di persistenza. &
+Livello di persistenza riscritto con tipi di riga espliciti.
+Individuato dal controllo dei tipi; coperto da \id{TC\_SY\_03}. \\
+
+\id{DF\_13} &
+Il livello di persistenza degli obiettivi passava riferimenti a funzione al
+posto dei valori, e alcune istruzioni di aggiornamento avevano i parametri in
+ordine invertito. &
+Corretti i riferimenti e l'ordine dei parametri. Individuato in revisione del
+codice; coperto da \id{TC\_SY\_03}. \\
+
+\id{DF\_14} &
+L'eliminazione di un quiz caricava tutte le domande del database e le
+filtrava in memoria, pur essendo la cascata già garantita dai vincoli di
+integrità. &
+Rimossa la cascata applicativa. \id{TC\_QZ\_13}, \id{TC\_SY\_07}. \\
+
+\end{longtable}
+
+\subsection{Difetti individuati dalle prove di sistema}
+
+\begin{longtable}{@{}l L{5.6cm} L{6.4cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Difetto} & \textbf{Risoluzione e caso di test} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{DF\_15} &
+Durante la correzione di un quiz l'aggiornamento del contatore dei quiz
+superati usava il pool di connessioni invece della connessione della
+transazione in corso: la richiesta attendeva i lock che essa stessa deteneva,
+e terminava con un errore di attesa scaduta. &
+La connessione transazionale è propagata a tutti i DAO coinvolti.
+Individuato da \id{TC\_SY\_03}; coperto da \id{TC\_OB\_05} e da
+un'asserzione dedicata sulla propagazione. \\
+
+\end{longtable}
+
+\begin{nota}
+\textbf{Che cosa dice la distribuzione dei difetti.} Sette difetti su
+quindici riguardano la sicurezza e nessuno di essi sarebbe emerso da test
+funzionali: erano tutti casi in cui il sistema faceva correttamente ciò che
+gli veniva chiesto, ma da chiunque lo chiedesse. Sono stati trovati
+formulando i requisiti non funzionali in modo verificabile e scrivendo i casi
+di test corrispondenti.
+
+\id{DF\_15} è l'unico difetto individuato esclusivamente dalle prove di
+sistema, e riguarda proprio l'area che la verifica automatica non copre: il
+comportamento transazionale reale del DBMS. È la conferma sperimentale del
+limite dichiarato in \cref{sec:td-limiti}.
+\end{nota}
+
+\section{Copertura del codice}
+\label{sec:td-copertura}
+
+\subsection{Perimetro di misurazione}
+
+La copertura è misurata sul codice che contiene decisioni: servizi, rotte,
+middleware, errori e serializzazione. Le entità sono escluse dal perimetro:
+sono contenitori di dati con soli metodi di accesso, esercitati indirettamente
+da tutte le suite, e includerle gonfierebbe la metrica senza aggiungere
+garanzie.
+
+\subsection{Risultati}
+
+\begin{longtable}{@{}L{7.6cm} r r r r@{}}
+\toprule
+\textbf{Modulo} & \textbf{Istr.} & \textbf{Diram.} & \textbf{Funz.} & \textbf{Righe} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Modulo} & \textbf{Istr.} & \textbf{Diram.} & \textbf{Funz.} & \textbf{Righe} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\file{services/AutenticazioneService} & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{services/AccountService}        &  97,2 & 100,0 & 100,0 &  97,2 \\
+\file{services/TutorialService}       & 100,0 &  85,7 & 100,0 & 100,0 \\
+\file{services/QuizService}           &  97,8 &  88,9 & 100,0 &  97,8 \\
+\file{services/FeedbackService}       & 100,0 &  94,4 & 100,0 & 100,0 \\
+\file{services/ObiettivoService}      & 100,0 &  91,7 & 100,0 & 100,0 \\
+\midrule
+\file{routes/auth}                    & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{routes/accounts}                & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{routes/tutorials}               & 100,0 &  87,5 & 100,0 & 100,0 \\
+\file{routes/quiz}                    &  92,3 & 100,0 &  83,3 &  92,3 \\
+\file{routes/feedback}                & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{routes/obiettivi}               &  91,3 & 100,0 &  80,0 &  91,3 \\
+\midrule
+\file{middleware/auth}                &  84,9 &  62,5 &  88,9 &  84,0 \\
+\file{middleware/errorHandler}        &  93,8 &  66,7 & 100,0 &  92,9 \\
+\file{middleware/validate}            & 100,0 &  85,7 & 100,0 & 100,0 \\
+\file{middleware/asyncHandler}        & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{middleware/upload}              &  62,2 &  60,0 &  33,3 &  63,6 \\
+\midrule
+\file{errors/AppError}                & 100,0 & 100,0 & 100,0 & 100,0 \\
+\file{dto/index}                      & 100,0 &  50,0 & 100,0 & 100,0 \\
+\midrule
+\textbf{Totale} & \textbf{94,9} & \textbf{86,9} & \textbf{93,1} & \textbf{95,0} \\
+
+\end{longtable}
+
+In valore assoluto: 615 istruzioni coperte su 648, 146 diramazioni su 168,
+122 funzioni su 131, 605 righe su 637. Le soglie configurate — 85\% di
+istruzioni, 80\% di diramazioni, 85\% di funzioni e righe — sono superate, e
+la loro violazione farebbe fallire la suite.
+
+\subsection{Analisi delle parti scoperte}
+
+\begin{longtable}{@{}L{4.9cm} L{9.5cm}@{}}
+\toprule
+\textbf{Modulo} & \textbf{Che cosa resta scoperto e perché} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Modulo} & \textbf{Che cosa resta scoperto e perché} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\file{middleware/upload} &
+È il modulo con la copertura più bassa (62,2\%). La parte scoperta è la
+configurazione di multer e il ridimensionamento delle immagini: codice di
+inizializzazione e chiamate a librerie esterne, esercitati dalle prove di
+sistema \id{TC\_SY\_05}. La logica applicativa del modulo — generazione del
+nome, validazione del percorso — è invece interamente coperta, ed è la parte
+che ha rilevanza per la sicurezza. \\
+
+\file{middleware/auth} &
+Restano scoperti alcuni rami difensivi nella decodifica del token: casi in
+cui il payload è formalmente valido ma privo dei campi attesi. Sono
+raggiungibili solo con un token firmato dal server e malformato, condizione
+che non può verificarsi se non manomettendo la chiave. \\
+
+\file{middleware/errorHandler} &
+Il ramo scoperto è la registrazione dell'errore nei log, disattivata in
+ambiente di test per non inquinare l'output. \\
+
+\file{dto/index} &
+La diramazione scoperta è la conversione di una data assente. Riguarda
+soltanto feedback costruiti in memoria e non ancora persistiti. \\
+
+\file{routes/quiz}, \file{routes/obiettivi} &
+Restano scoperte le rotte di aggiornamento, il cui comportamento è identico a
+quello delle rotte di creazione già coperte e delega interamente al servizio,
+a sua volta coperto. \\
+
+\file{services/TutorialService} &
+Le diramazioni scoperte sono i rami di messaggio d'errore alternativi di uno
+stesso controllo di validazione, distinguibili solo dal testo prodotto. \\
+
+\end{longtable}

@@ -1,0 +1,52 @@
+\chapter{Introduzione}
+\label{cap:td-introduzione}
+
+\section{Scopo del documento}
+
+Questo documento descrive come Tech4All è verificato: la strategia adottata,
+il metodo con cui i casi di test sono stati derivati, la loro specifica, i
+risultati dell'esecuzione e i limiti della verifica.
+
+Rispetto alla struttura suggerita da IEEE 829~\cite{ieee829}, il documento
+riunisce in un solo testo ciò che lo standard distribuisce fra piano di test,
+specifica dei casi, rapporto sugli incidenti e rapporto riassuntivo. La
+ragione è pratica: quei quattro documenti condividono premesse, glossario e
+strumenti, e mantenerli separati per un sistema di questa scala produce
+ripetizione senza aggiungere rigore.
+
+La riunione dei quattro documenti ha però una conseguenza sull'ordine di
+lettura: il documento è redatto man mano che la verifica procede, e i
+capitoli che descrivono strategia e casi di test precedono l'esecuzione
+anche cronologicamente. Il \cref{cap:td-esecuzione} riporta l'esito
+dell'ultima esecuzione della suite e i difetti individuati fino a quel
+momento.
+
+\section{Relazione con gli altri documenti}
+
+Il documento chiude la catena di tracciabilità del progetto.
+
+\begin{description}[leftmargin=1.4cm,style=nextline]
+  \item[Dal RAD] provengono i requisiti funzionali e non funzionali, che sono
+    l'oggetto della verifica, e i criteri di accettazione, che ne sono
+    l'oracolo. Un requisito non funzionale del RAD è formulato in modo da
+    poter diventare un'asserzione: è la ragione per cui, in quel documento,
+    ogni requisito ha un criterio osservabile.
+  \item[Dal SDD] provengono i confini delle unità da verificare: servizi,
+    middleware e serializzazione. La scelta di iniettare le dipendenze dai
+    costruttori, motivata in quel documento, è ciò che rende la verifica in
+    isolamento possibile senza artifici.
+  \item[Verso entrambi] questo documento riporta, in
+    \cref{sec:td-limiti}, ciò che la verifica \emph{non} copre: sono i punti
+    in cui i compromessi dichiarati nel SDD si traducono in rischio residuo.
+\end{description}
+
+La matrice che lega ogni requisito ai casi di test che lo verificano è
+nell'appendice~\ref{cap:td-app-tracciabilita}.
+
+\section{Riferimenti}
+
+Il metodo di derivazione dei casi di test è quello della \term{category
+partition} di Ostrand e Balcer~\cite{ostrand1988}. La terminologia relativa
+alla documentazione della verifica segue IEEE 829~\cite{ieee829}. Le
+classi di vulnerabilità citate nei casi di test di sicurezza fanno
+riferimento alla classificazione OWASP~\cite{owasp2021}.

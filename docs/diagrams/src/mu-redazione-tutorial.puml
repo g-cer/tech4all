@@ -1,0 +1,35 @@
+@startsalt
+skinparam backgroundColor transparent
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam shadowing false
+{
+  {* <b>Tech4All | Catalogo | Chi siamo | Profilo }
+  ==
+  <b>Nuovo tutorial
+  ..
+  {
+    Titolo    | "Proteggere la tua privacy online   "
+    Categoria | ^Sicurezza^
+  }
+  ..
+  {
+    Contenuto
+  }
+  {+
+    {* <b>H | <b>B | <i>I | <u>U | ≡ | 🔗 | 🖼 }
+    .
+    Mantenere la privacy online è essenziale…
+    .
+    .
+  }
+  ..
+  {
+    Immagine di copertina | [ Scegli file ] | nessun file selezionato
+  }
+  ..
+  {
+    [ Crea tutorial ] | [ Annulla ]
+  }
+}
+@endsalt

@@ -1,0 +1,240 @@
+\chapter{Strategia di verifica}
+\label{cap:td-strategia}
+
+\section{Livelli di verifica}
+
+La verifica è organizzata su tre livelli, con obiettivi distinti e costi
+crescenti.
+
+\begin{longtable}{@{}L{2.8cm} L{4.4cm} L{6.8cm}@{}}
+\toprule
+\textbf{Livello} & \textbf{Che cosa verifica} & \textbf{Come} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Livello} & \textbf{Che cosa verifica} & \textbf{Come} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Unità &
+Le regole di dominio dei servizi e le funzioni di infrastruttura prese
+singolarmente. &
+Il servizio è costruito con DAO simulati passati al costruttore. Nessuna
+rete, nessun database. \\
+
+Integrazione &
+La composizione fra rotte, middleware e serializzazione: controllo degli
+accessi, validazione, forma delle risposte, traduzione degli errori. &
+L'applicazione Express è costruita con servizi simulati e interrogata via
+HTTP con \id{supertest}, senza occupare una porta. \\
+
+Sistema &
+Il funzionamento end-to-end su un'istanza reale, database compreso. &
+Prove manuali documentate in \cref{sec:td-sistema}, eseguite su una base di
+dati creata dagli script del progetto. \\
+
+\end{longtable}
+
+Il livello di unità e quello di integrazione sono automatici ed eseguiti a
+ogni modifica del codice. Il livello di sistema è manuale: è l'unico che
+esercita le interrogazioni SQL reali, ed è quindi la contromisura al
+compromesso dichiarato nel SDD sulla sostituzione del livello di persistenza.
+
+\section{Approccio}
+
+L'approccio è \term{white-box}: i casi di test sono derivati conoscendo la
+struttura interna del codice, e la loro adeguatezza è misurata sulla
+copertura raggiunta. La scelta è motivata dal fatto che gli oracoli più
+importanti del sistema — la soglia di superamento di un quiz, l'esclusione
+delle soluzioni dalla serializzazione, la propagazione della connessione
+transazionale — non sono osservabili dall'esterno senza conoscere il
+progetto.
+
+I casi di test non sono però scritti guardando l'implementazione riga per
+riga: sono derivati dalle specifiche con il metodo della category partition
+(\cref{cap:td-derivazione}), e la conoscenza della struttura interna serve a
+verificare che nessun percorso sia rimasto scoperto. Un test scritto per
+inseguire una riga di codice verifica che il codice faccia ciò che fa, non
+ciò che deve fare.
+
+\section{Criteri di ingresso e di uscita}
+
+\begin{longtable}{@{}L{4.0cm} L{10.4cm}@{}}
+\toprule
+\textbf{Criterio} & \textbf{Condizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Criterio} & \textbf{Condizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Ingresso &
+Il codice compila senza errori di tipo e supera l'analisi statica. Una
+funzionalità non entra in verifica finché la sua specifica non è formulata
+come requisito con criterio di accettazione. \\
+
+Uscita &
+Tutti i casi di test superati; copertura non inferiore all'85\% delle
+istruzioni e all'80\% delle diramazioni; nessun difetto aperto di gravità
+alta o critica. \\
+
+\end{longtable}
+
+Le soglie di copertura non sono un valore riportato a posteriori: sono
+configurate nella suite, che fallisce se non vengono raggiunte. La differenza
+è sostanziale — una soglia dichiarata in un documento è un auspicio, una
+soglia imposta dalla suite è un vincolo.
+
+\section{Sospensione e ripresa}
+
+L'esecuzione della verifica è sospesa quando il sistema non soddisfa più i
+criteri d'ingresso: un errore di compilazione, un fallimento dell'analisi
+statica o un difetto che impedisce l'esecuzione della suite. In questi casi
+proseguire non produrrebbe informazione, perché i fallimenti successivi
+sarebbero conseguenza del primo.
+
+La verifica riprende quando la causa è rimossa e la suite viene rieseguita per
+intero. Non si riprende dall'ultimo test fallito: un difetto corretto può
+averne introdotto un altro altrove, e solo un'esecuzione completa lo
+rivelerebbe.
+
+\section{Ambiente e strumenti}
+
+\begin{longtable}{@{}L{3.4cm} L{11.0cm}@{}}
+\toprule
+\textbf{Strumento} & \textbf{Ruolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Strumento} & \textbf{Ruolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Jest &
+Esecutore dei test, gestione dei doppi e misurazione della copertura. \\
+
+ts-jest &
+Compilazione TypeScript durante l'esecuzione: i test sono scritti nello
+stesso linguaggio del codice e ne condividono i tipi. \\
+
+supertest &
+Invio di richieste HTTP all'applicazione Express in memoria, senza aprire
+una porta di rete. \\
+
+TypeScript &
+Controllo dei tipi in modalità stretta, primo livello di verifica: molte
+classi di errore non arrivano mai a essere eseguite. \\
+
+ESLint e Prettier &
+Analisi statica e uniformità formale del codice. \\
+
+GitHub Actions &
+Esecuzione automatica di analisi statica, controllo dei tipi, test e
+compilazione a ogni integrazione. \\
+
+\end{longtable}
+
+\subsection{Isolamento dal database}
+
+Il modulo che espone il pool di connessioni è sostituito globalmente da un
+doppio all'avvio della suite. Nessun test apre una connessione: l'intera
+verifica automatica gira su qualunque macchina senza MySQL installato e senza
+variabili d'ambiente reali.
+
+La scelta ha due conseguenze da tenere presenti. La prima è positiva: la
+suite completa impiega pochi secondi, quindi viene eseguita spesso. La
+seconda è il limite già dichiarato: le interrogazioni SQL non sono verificate
+automaticamente (\cref{sec:td-limiti}).
+
+\section{Funzionalità da verificare}
+
+\begin{longtable}{@{}L{4.4cm} L{10.0cm}@{}}
+\toprule
+\textbf{Area} & \textbf{Oggetto della verifica} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Area} & \textbf{Oggetto della verifica} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Autenticazione &
+Politica delle password, hashing, riconoscimento delle credenziali,
+indistinguibilità fra email inesistente e password errata, apertura e
+chiusura della sessione. \\
+
+Gestione account &
+Aggiornamento parziale del profilo, unicità dell'email, cambio password con
+verifica di quella attuale, cancellazione. \\
+
+Gestione tutorial &
+Vincoli di dominio su titolo, testo, categoria e immagine; sanificazione del
+contenuto; filtro e ricerca; ciclo di vita del tutorial. \\
+
+Gestione quiz &
+Vincoli sulle domande; correzione e soglia di superamento; associazione delle
+risposte per identificativo; conservazione di un esito positivo; esclusione
+delle soluzioni dalla rappresentazione. \\
+
+Gestione feedback &
+Vincoli su valutazione e commento; unicità per coppia utente-tutorial;
+distinzione fra proprietà del dato e potere di moderazione. \\
+
+Gestione obiettivi &
+Assegnazione automatica alle soglie; idempotenza; abbinamento fra
+conseguimenti e obiettivi. \\
+
+Controllo degli accessi &
+Matrice completa: per ogni rotta protetta, comportamento verso anonimo,
+utente e amministratore. \\
+
+Infrastruttura &
+Gerarchia degli errori, traduzione in risposte HTTP, gestione dei nomi di
+file, composizione dell'applicazione. \\
+
+\end{longtable}
+
+\section{Funzionalità non verificate automaticamente}
+
+\begin{longtable}{@{}L{4.4cm} L{10.0cm}@{}}
+\toprule
+\textbf{Esclusione} & \textbf{Motivazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Esclusione} & \textbf{Motivazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Interrogazioni SQL e vincoli del database &
+Il livello di persistenza è sostituito da doppi. Coperti dalle prove di
+sistema (\cref{sec:td-sistema}). \\
+
+Trigger di ricalcolo della valutazione media &
+Vivono nel database. Coperti dalle prove di sistema. \\
+
+Interfaccia utente &
+Non esistono test automatici sul client. Il comportamento è verificato
+manualmente; il controllo dei tipi e l'analisi statica coprono la parte
+strutturale. \\
+
+Elaborazione delle immagini &
+Il ridimensionamento è delegato a una libreria esterna e non è
+riverificato. La logica applicativa che la circonda — generazione del nome,
+validazione del percorso — è invece coperta. \\
+
+Widget conversazionale &
+Componente esterno, fuori dal perimetro del sistema. \\
+
+\end{longtable}

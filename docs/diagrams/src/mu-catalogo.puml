@@ -1,0 +1,37 @@
+@startsalt
+skinparam backgroundColor transparent
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam shadowing false
+{
+  {* <b>Tech4All | Catalogo | Chi siamo | Profilo }
+  {
+    "Cerca un tutorial…            " | [ Cerca ]
+  }
+  ==
+  {
+    <b>Catalogo dei tutorial | [ Crea nuovo tutorial ]
+  }
+  {
+    Filtra per categoria: | ^Tutte^
+  }
+  ..
+  {+
+    <b>Proteggere la tua privacy online
+    <i>[ copertina ]
+    Sicurezza · 4,0/5
+  }
+  {+
+    <b>Utilizzare i social media
+    <i>[ copertina ]
+    Social Media · 3,0/5
+  }
+  {+
+    <b>Creare un account email
+    <i>[ copertina ]
+    Internet · 5,0/5
+  }
+  ..
+  [ Torna alla home ]
+}
+@endsalt

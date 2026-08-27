@@ -1,0 +1,100 @@
+\chapter{Conclusioni}
+\label{cap:td-conclusioni}
+
+\section{Valutazione complessiva}
+
+I criteri di uscita definiti in \cref{cap:td-strategia} sono soddisfatti:
+tutti i casi di test sono superati, la copertura supera le soglie
+configurate e non restano difetti aperti. Il sistema può essere considerato
+verificato rispetto ai requisiti del RAD, entro i limiti dichiarati nella
+sezione seguente.
+
+Sotto il profilo del metodo, la verifica ha prodotto due risultati che vale
+la pena isolare.
+
+Il primo riguarda i requisiti non funzionali. Averli formulati nel RAD con un
+criterio di accettazione osservabile — invece che come affermazioni generiche
+sulla qualità — li ha resi traducibili in asserzioni. Sette difetti di
+sicurezza su quindici sono stati individuati proprio così: erano casi in cui
+il sistema faceva correttamente ciò che gli veniva chiesto, ma da chiunque lo
+chiedesse, e nessun test funzionale li avrebbe rivelati.
+
+Il secondo riguarda la progettazione. La possibilità di verificare ogni
+servizio in isolamento non è una proprietà della suite ma del sistema: deriva
+dalla decisione, presa nel SDD, di passare le dipendenze dai costruttori.
+Senza di essa la stessa verifica richiederebbe di aggirare l'incapsulamento
+per sostituire un collaboratore. La difficoltà a scrivere un test si è
+rivelata, in questo progetto, un indicatore attendibile di un problema di
+progettazione, e in più di un caso ha portato a rivedere l'interfaccia di una
+classe prima ancora di verificarla.
+
+\section{Limiti della verifica}
+\label{sec:td-limiti}
+
+\begin{longtable}{@{}L{4.4cm} L{5.0cm} L{5.0cm}@{}}
+\toprule
+\textbf{Limite} & \textbf{Rischio residuo} & \textbf{Mitigazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Limite} & \textbf{Rischio residuo} & \textbf{Mitigazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Il livello di persistenza è sostituito da doppi: le interrogazioni SQL non
+sono eseguite dalla verifica automatica. &
+Un errore in una query — nome di colonna, ordine dei parametri — non viene
+intercettato prima dell'esecuzione. È accaduto: \id{DF\_12} e \id{DF\_13}
+sono difetti di questa natura. &
+Prove di sistema \id{TC\_SY\_01}--\id{TC\_SY\_09} su un database reale, da
+eseguire prima di ogni rilascio. Il livello è sottile e privo di logica
+condizionale, il che riduce la superficie esposta. \\
+
+I trigger che mantengono la valutazione media vivono nel database. &
+Una modifica ai trigger non è rilevata da alcun test automatico. &
+\id{TC\_SY\_06} verifica il ricalcolo su dati reali. \\
+
+Non esistono test automatici sull'interfaccia utente. &
+Un difetto nella composizione dei componenti o nella gestione dello stato non
+viene rilevato. &
+Controllo dei tipi e analisi statica sull'intero client; verifica manuale dei
+percorsi principali. Il client non contiene regole di dominio: la logica che
+conta è verificata sul server. \\
+
+Le prove di sistema sono manuali. &
+Possono essere omesse sotto pressione, ed è il momento in cui servirebbero
+di più. &
+Sono elencate come casi di test con procedura e oracolo espliciti, non come
+lista di controllo informale. \\
+
+La verifica non comprende prove di carico o di sicurezza offensive. &
+Il comportamento sotto carico e la resistenza ad attacchi non elementari non
+sono noti. &
+Fuori dagli obiettivi del progetto; le contromisure adottate sono
+documentate nel SDD e verificate a livello funzionale. \\
+
+\end{longtable}
+
+\section{Interventi proposti}
+
+Gli interventi che seguono non sono difetti ma direzioni di miglioramento
+della verifica, ordinate per rapporto fra beneficio e costo.
+
+\begin{enumerate}
+  \item \textbf{Test di integrazione su un database effimero.} Eseguire le
+    prove di sistema automaticamente su un'istanza MySQL creata e distrutta
+    dalla catena di integrazione chiuderebbe il limite principale. È il
+    singolo intervento con il beneficio maggiore.
+  \item \textbf{Verifica automatica dei percorsi principali del client.} Una
+    manciata di prove end-to-end su accesso, svolgimento di un quiz e
+    inserimento di un feedback coprirebbe le regressioni più probabili
+    nell'interfaccia.
+  \item \textbf{Casi di test sui trigger.} Verificabili con asserzioni SQL
+    dirette, una volta disponibile un database nella catena di integrazione.
+  \item \textbf{Analisi di mutazione.} La copertura dice quali righe sono
+    eseguite, non se le asserzioni sono in grado di rilevare un cambiamento
+    di comportamento. Un'analisi di mutazione sui servizi darebbe una misura
+    più severa dell'adeguatezza dei casi di test.
+\end{enumerate}

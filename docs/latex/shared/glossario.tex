@@ -1,0 +1,184 @@
+% =============================================================================
+%  Glossario e acronimi condivisi dai tre documenti.
+%
+%  I termini qui definiti sono gli stessi usati come nomi delle classi nel
+%  codice: il glossario è il punto in cui il linguaggio del dominio viene
+%  fissato una volta sola, per documenti e sorgenti insieme.
+% =============================================================================
+
+\chapter{Glossario}
+\label{cap:glossario}
+
+\section{Termini del dominio}
+
+\begin{longtable}{@{}L{3.2cm} L{11.5cm}@{}}
+\toprule
+\textbf{Termine} & \textbf{Definizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Termine} & \textbf{Definizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Utente &
+Persona registrata alla piattaforma. Consulta i tutorial, svolge i quiz,
+lascia feedback e consegue badge. Nel codice: classe \id{Utente}. \\
+
+Amministratore &
+Utente con privilegi di gestione: crea e modifica tutorial, quiz e obiettivi,
+modera i feedback e amministra gli account. È un ruolo dell'entità
+\id{Utente}, non un'entità distinta. \\
+
+Ruolo &
+Attributo dell'utente che ne determina i permessi. Assume i valori
+\id{utente} e \id{admin}. Nel codice: enumerazione \id{Ruolo}. \\
+
+Tutorial &
+Unità didattica composta da titolo, immagine di copertina, contenuto testuale
+e categoria. È l'oggetto centrale del catalogo. \\
+
+Categoria &
+Classificazione tematica di un tutorial. L'insieme è chiuso: Internet,
+Social Media, Tecnologia, Sicurezza. \\
+
+Quiz &
+Prova di verifica associata a un solo tutorial, composta da domande a scelta
+multipla. La correzione è responsabilità esclusiva del server. \\
+
+Domanda &
+Quesito a scelta multipla appartenente a un quiz, con esattamente una
+risposta corretta fra le opzioni proposte. \\
+
+Risposta &
+Singola opzione di una domanda. L'indicazione di correttezza non lascia mai
+il server prima della consegna del quiz. \\
+
+Svolgimento &
+Registrazione del tentativo di un utente su un quiz: esito, numero di
+risposte esatte e data. Un utente conserva un solo svolgimento per quiz. \\
+
+Soglia di superamento &
+Frazione di risposte corrette necessaria a superare un quiz, pari al 70\%. \\
+
+Feedback &
+Valutazione da 1 a 5 con commento, lasciata da un utente su un tutorial.
+Un utente può lasciarne al più uno per tutorial. \\
+
+Valutazione media &
+Media dei feedback ricevuti da un tutorial, mantenuta dal database e
+trattata come sola lettura dal codice applicativo. \\
+
+Obiettivo &
+Traguardo raggiungibile superando un numero prestabilito di quiz. Al
+raggiungimento viene assegnato il badge associato. \\
+
+Badge &
+Riconoscimento visivo assegnato a un utente al conseguimento di un
+obiettivo. \\
+
+Conseguimento &
+Associazione fra un utente e un obiettivo raggiunto, con la data di
+assegnazione. \\
+
+Catalogo &
+Insieme dei tutorial pubblicati, consultabile anche senza autenticazione. \\
+
+Sessione &
+Periodo in cui un utente è riconosciuto dal sistema, materializzato da un
+token firmato conservato in un cookie \id{httpOnly}. \\
+
+\end{longtable}
+
+\section{Termini tecnici}
+
+\begin{longtable}{@{}L{3.2cm} L{11.5cm}@{}}
+\toprule
+\textbf{Termine} & \textbf{Definizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Termine} & \textbf{Definizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+DAO &
+\term{Data Access Object}: oggetto che incapsula l'accesso a una tabella o a
+un aggregato del database, isolando il resto del sistema dal linguaggio SQL. \\
+
+DTO &
+\term{Data Transfer Object}: struttura dati priva di comportamento usata per
+trasferire informazioni oltre il confine del sistema. In Tech4All è l'unico
+punto in cui le entità vengono serializzate verso il client. \\
+
+Servizio &
+Oggetto che realizza le regole di dominio di un sottosistema, coordinando uno
+o più DAO. Non conosce il protocollo HTTP. \\
+
+Middleware &
+Funzione interposta nella catena di elaborazione di una richiesta HTTP, che
+può interromperla o arricchirla. \\
+
+Aggregato &
+Insieme di entità con un unico punto d'accesso e un ciclo di vita comune.
+In Tech4All quiz, domande e risposte formano un solo aggregato. \\
+
+Hash &
+Trasformazione irreversibile di un valore. Le password sono conservate solo
+come hash, mai in chiaro. \\
+
+Sanificazione &
+Rimozione dai contenuti HTML dei costrutti eseguibili, applicata prima della
+persistenza. \\
+
+Transazione &
+Sequenza di operazioni sul database che viene applicata per intero o non
+applicata affatto. \\
+
+Copertura del codice &
+Frazione del codice sorgente eseguita durante i test, misurata su istruzioni,
+diramazioni, funzioni e righe. \\
+
+\end{longtable}
+
+\section{Acronimi}
+
+\begin{longtable}{@{}L{2.4cm} L{12.3cm}@{}}
+\toprule
+\textbf{Sigla} & \textbf{Significato} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Sigla} & \textbf{Significato} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+API      & \term{Application Programming Interface} \\
+CI       & \term{Continuous Integration} \\
+CORS     & \term{Cross-Origin Resource Sharing} \\
+CRUD     & \term{Create, Read, Update, Delete} \\
+DBMS     & \term{Database Management System} \\
+DTO      & \term{Data Transfer Object} \\
+DAO      & \term{Data Access Object} \\
+FURPS+   & \term{Functionality, Usability, Reliability, Performance, Supportability} e vincoli aggiuntivi \\
+HTTP     & \term{HyperText Transfer Protocol} \\
+JSON     & \term{JavaScript Object Notation} \\
+JWT      & \term{JSON Web Token} \\
+ODD      & \term{Object Design Document} \\
+RAD      & \term{Requirements Analysis Document} \\
+REST     & \term{Representational State Transfer} \\
+RF       & Requisito Funzionale \\
+RNF      & Requisito Non Funzionale \\
+SDD      & \term{System Design Document} \\
+SQL      & \term{Structured Query Language} \\
+UC       & \term{Use Case}, caso d'uso \\
+UML      & \term{Unified Modeling Language} \\
+XSS      & \term{Cross-Site Scripting} \\
+
+\end{longtable}

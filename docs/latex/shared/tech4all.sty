@@ -1,0 +1,183 @@
+% =============================================================================
+%  tech4all.sty — stile condiviso dalla documentazione di Tech4All
+%
+%  Definisce impaginazione, tipografia, tabelle, figure e comandi semantici
+%  usati da RAD, SDD e Test Document. Tenere lo stile in un solo file è ciò
+%  che permette ai tre documenti di essere uniformi senza duplicare nulla.
+%
+%  Uso:  \usepackage{tech4all}
+%        (con \usepackage{shared/tech4all} dai documenti figli)
+% =============================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tech4all}[2026/08/27 Stile della documentazione Tech4All]
+
+% --- Lingua e codifica ------------------------------------------------------
+\RequirePackage[T1]{fontenc}
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[italian]{babel}
+\RequirePackage{csquotes}
+
+% --- Tipografia -------------------------------------------------------------
+% Times-like: la scelta più sobria e consueta per un documento accademico.
+\RequirePackage{amssymb}
+\RequirePackage{newtxtext}
+\RequirePackage{newtxmath}
+\RequirePackage{microtype}
+\RequirePackage{ragged2e}
+
+% --- Impaginazione ----------------------------------------------------------
+\RequirePackage[a4paper,margin=2.7cm,headheight=14pt]{geometry}
+\RequirePackage{setspace}
+\onehalfspacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+\RequirePackage{emptypage}
+
+% --- Colori -----------------------------------------------------------------
+% Un solo accento, ripreso dalla brand identity del progetto.
+\RequirePackage{xcolor}
+\definecolor{techVerde}{HTML}{1D5C31}
+\definecolor{techGrigio}{HTML}{4A4A4A}
+\definecolor{techGrigioChiaro}{HTML}{E8E8E8}
+
+% --- Titoli -----------------------------------------------------------------
+\RequirePackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\Large\bfseries\color{techVerde}}
+  {\normalfont\normalsize\bfseries\color{techGrigio}\MakeUppercase{\chaptertitlename}~\thechapter}
+  {0.6em}
+  {\Huge}
+  [\vspace{-0.4em}\rule{\textwidth}{0.6pt}]
+\titlespacing*{\chapter}{0pt}{0pt}{2em}
+\titleformat{\section}{\normalfont\large\bfseries\color{techVerde}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\itshape}{\thesubsubsection}{0.7em}{}
+
+% --- Testatine --------------------------------------------------------------
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\color{techGrigio}\nouppercase{\leftmark}}
+\fancyhead[R]{\footnotesize\color{techGrigio}\techNomeDocumento}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\footnotesize\thepage}%
+  \renewcommand{\headrulewidth}{0pt}}
+
+% --- Indice -----------------------------------------------------------------
+\RequirePackage{tocloft}
+\setlength{\cftbeforechapskip}{0.4em}
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+
+% --- Elenchi ----------------------------------------------------------------
+\RequirePackage{enumitem}
+\setlist{itemsep=0.2em,parsep=0pt,topsep=0.3em}
+
+% --- Tabelle ----------------------------------------------------------------
+% `tabularx` non è compatibile con `booktabs` su questa distribuzione:
+% si usano colonne `p{}` di larghezza esplicita tramite i tipi L/C/R.
+\RequirePackage{array}
+\RequirePackage{booktabs}
+\RequirePackage{longtable}
+\RequirePackage{multirow}
+\RequirePackage{makecell}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\Centering\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\RaggedLeft\arraybackslash}p{#1}}
+\renewcommand{\arraystretch}{1.25}
+
+% --- Figure e didascalie ----------------------------------------------------
+\RequirePackage{graphicx}
+\RequirePackage{float}
+\RequirePackage[font=small,labelfont=bf,labelsep=period]{caption}
+\graphicspath{{../../diagrams/out/}}
+
+% --- Codice -----------------------------------------------------------------
+\RequirePackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{techVerde}\bfseries,
+  commentstyle=\color{techGrigio}\itshape,
+  stringstyle=\color{techGrigio},
+  numbers=left,
+  numberstyle=\tiny\color{techGrigio},
+  numbersep=8pt,
+  frame=single,
+  rulecolor=\color{techGrigioChiaro},
+  breaklines=true,
+  showstringspaces=false,
+  captionpos=b,
+  extendedchars=true,
+  literate={à}{{\`a}}1 {è}{{\`e}}1 {é}{{\'e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+}
+
+% --- Bibliografia -----------------------------------------------------------
+\RequirePackage[backend=biber,style=numeric,sorting=nyt,maxbibnames=4]{biblatex}
+
+% --- Collegamenti -----------------------------------------------------------
+% `hidelinks`: i rimandi restano cliccabili ma non colorati, come ci si
+% attende da un documento destinato anche alla stampa.
+\RequirePackage[hidelinks,pdfusetitle]{hyperref}
+\RequirePackage[italian,nameinlink]{cleveref}
+
+% =============================================================================
+%  Comandi semantici
+% =============================================================================
+
+% Nome breve del documento, mostrato nella testatina.
+\newcommand{\techNomeDocumento}{Tech4All}
+\newcommand{\impostaNomeDocumento}[1]{\renewcommand{\techNomeDocumento}{#1}}
+
+% Identificativi di requisiti, casi d'uso, classi e casi di test.
+%
+% Gli identificativi non vanno mai spezzati a metà: un nome interrotto è più
+% difficile da leggere di una riga leggermente più corta. Dove un nome lungo
+% non entra in una colonna, si allarga la colonna (o si divide la cella con
+% `\newline`), non si spezza la parola.
+\newcommand{\id}[1]{\texttt{\small #1}}
+
+% Nome di un file o di un percorso.
+\newcommand{\file}[1]{\texttt{\small #1}}
+
+% Termine tecnico introdotto per la prima volta.
+\newcommand{\term}[1]{\emph{#1}}
+
+% Inclusione uniforme di un diagramma generato da PlantUML.
+% La figura è limitata anche in altezza: un diagramma alto non deve mai
+% traboccare dalla pagina, anche a costo di essere rimpicciolito.
+%   #1 larghezza relativa alla riga  #2 nome file (senza estensione)
+%   #3 didascalia                    #4 etichetta
+\newcommand{\diagramma}[4]{%
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#1\textwidth,height=0.82\textheight,keepaspectratio]{#2}
+    \caption{#3}\label{#4}
+  \end{figure}%
+}
+
+% Diagramma molto più largo che alto: occupa una pagina ruotata, così le
+% etichette restano leggibili invece di essere compresse nella giustezza.
+%   #1 nome file (senza estensione)  #2 didascalia  #3 etichetta
+\RequirePackage{rotating}
+\newcommand{\diagrammaLargo}[3]{%
+  \begin{sidewaysfigure}
+    \centering
+    \includegraphics[width=0.95\textheight,height=0.92\textwidth,keepaspectratio]{#1}
+    \caption{#2}\label{#3}
+  \end{sidewaysfigure}%
+}
+
+% Riquadro per note metodologiche e scelte motivate.
+\RequirePackage[framemethod=tikz]{mdframed}
+\newmdenv[
+  linecolor=techVerde,
+  linewidth=0.8pt,
+  topline=false,bottomline=false,rightline=false,
+  leftmargin=0pt,rightmargin=0pt,
+  innerleftmargin=10pt,innertopmargin=6pt,innerbottommargin=6pt,
+  skipabove=0.8em,skipbelow=0.8em
+]{nota}
+
+\endinput

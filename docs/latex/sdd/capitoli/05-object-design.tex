@@ -1,0 +1,334 @@
+\chapter{Progettazione degli oggetti}
+\label{cap:sdd-object-design}
+
+Questo capitolo scende dal livello dei sottosistemi a quello delle classi.
+Fissa le convenzioni con cui il codice è scritto, descrive l'organizzazione
+in package, documenta i contratti delle classi principali e discute i pattern
+adottati — e quelli valutati e scartati.
+
+\section{Compromessi di progettazione degli oggetti}
+
+\begin{longtable}{@{}L{3.6cm} L{4.2cm} L{6.4cm}@{}}
+\toprule
+\textbf{Compromesso} & \textbf{Alternativa scartata} & \textbf{Motivazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Compromesso} & \textbf{Alternativa scartata} & \textbf{Motivazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Entità come classi con accessori &
+Strutture dati anonime, senza comportamento &
+Le classi permettono di collocare nel dominio le poche operazioni che gli
+appartengono davvero, come «la risposta corretta di questa domanda». Il
+prezzo è più codice di accesso. \\
+
+Un DAO per aggregato &
+Un DAO per tabella &
+Domande e risposte non hanno ciclo di vita autonomo: separarle in DAO propri
+produrrebbe classi che nessuno può usare correttamente da sole e
+moltiplicherebbe le interrogazioni. \\
+
+Iniezione tramite parametri con valore predefinito &
+Un contenitore di dipendenze &
+Il valore predefinito rende testabile ogni classe senza introdurre un
+framework e senza che il codice di produzione debba dichiarare un grafo di
+dipendenze. \\
+
+Eccezioni tipizzate &
+Valori di ritorno che descrivono l'esito &
+Le eccezioni tolgono dalle rotte la propagazione manuale dell'errore, al
+prezzo di un percorso di controllo non visibile nella firma dei metodi. \\
+
+\end{longtable}
+
+\section{Linee guida di documentazione delle interfacce}
+\label{sec:sdd-linee-guida}
+
+Le convenzioni seguenti valgono per tutto il codice del server e sono
+verificate, per quanto possibile, dall'analisi statica.
+
+\begin{description}[leftmargin=1.4cm,style=nextline]
+  \item[Lingua] I concetti del dominio conservano il nome italiano
+    (\id{Utente}, \id{Tutorial}, \id{Svolgimento}); i termini tecnici restano
+    in inglese (\id{Service}, \id{Dao}, \id{middleware}, \id{findById}).
+    La regola tiene allineati codice e glossario senza tradurre termini che
+    non hanno un equivalente italiano consolidato.
+  \item[Nomi] Classi in \id{PascalCase}, metodi e variabili in
+    \id{camelCase}, costanti in \id{MAIUSCOLO\_CON\_UNDERSCORE}, tabelle e
+    colonne in \id{snake\_case}. I metodi dei DAO usano i verbi
+    \id{find}, \id{create}, \id{update}, \id{delete}; quelli dei servizi
+    usano il verbo del dominio (\id{creaQuiz}, \id{eseguiQuiz}).
+  \item[Visibilità] I campi delle entità sono privati e accessibili tramite
+    metodi; è pubblico solo ciò che fa parte del contratto.
+  \item[Documentazione] Ogni classe e ogni metodo pubblico hanno un commento
+    che ne dichiara lo scopo, i parametri, il valore restituito e le
+    eccezioni sollevate. I commenti spiegano \emph{perché}, non
+    \emph{che cosa}: ciò che il codice già dice non viene ripetuto.
+  \item[Tipi] Nessun uso di \id{any}; il controllo dei tipi è attivo in
+    modalità stretta e le variabili non utilizzate sono errori.
+\end{description}
+
+\section{Organizzazione in package}
+
+\diagramma{0.62}{pkg-packages}{Package del server e direzione delle
+dipendenze.}{fig:sdd-pkg}
+
+La struttura è la stessa per tutti i sottosistemi. Le entità sono raggruppate
+per sottosistema, in sottocartelle di \file{entity}; rotte, servizi e DAO sono
+invece raggruppati per livello. In questo modo la decomposizione per
+sottosistema resta leggibile dai nomi dei file, e la struttura a livelli resta
+visibile nell'albero delle cartelle.
+
+Il grafo delle dipendenze è aciclico e orientato verso il basso. Il package
+\file{entity} non dipende da nulla: le entità possono essere costruite e
+verificate senza alcuna infrastruttura.
+
+\section{Contratti delle classi principali}
+
+\subsection{Livello di persistenza}
+
+\diagramma{0.98}{cd-design-quiz}{Progettazione degli oggetti del sottosistema
+Gestione quiz.}{fig:sdd-cd-quiz}
+
+\id{QuizDao} è l'esempio più significativo: gestisce l'intero aggregato
+quiz-domande-risposte. La lettura avviene con un'unica interrogazione che
+unisce le tre tabelle e ricostruisce il grafo di oggetti in memoria; la
+scrittura accetta una connessione transazionale, perché coinvolge più
+tabelle e deve essere atomica.
+
+\begin{longtable}{@{}L{5.6cm} L{8.8cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{findById(id): Quiz | null} &
+Restituisce l'aggregato completo o \id{null}. Una sola interrogazione. \\
+
+\id{findByTutorial(tutorialId): Quiz | null} & Come sopra, per tutorial. \\
+
+\id{create(quiz, connection): number} &
+Inserisce quiz, domande e risposte assegnando gli identificativi alle entità
+passate. \emph{Richiede} una connessione transazionale. \\
+
+\id{replaceDomande(quizId, domande, connection)} &
+Elimina le domande esistenti — le risposte cadono in cascata — e inserisce
+le nuove. \emph{Richiede} una connessione transazionale. \\
+
+\id{delete(id): boolean} &
+Restituisce \id{false} se il quiz non esisteva. \\
+
+\end{longtable}
+
+\subsection{Serializzazione}
+\label{sec:sdd-dto}
+
+Il package \file{dto} contiene funzioni pure che traducono un'entità nella
+rappresentazione destinata al client. Nessuna rotta restituisce
+direttamente un'entità.
+
+Questa regola non è una preferenza stilistica: è il meccanismo con cui due
+requisiti di sicurezza vengono fatti rispettare in un punto solo
+(\id{DG\_1}, \id{DG\_2}).
+
+\begin{longtable}{@{}L{4.0cm} L{10.4cm}@{}}
+\toprule
+\textbf{Funzione} & \textbf{Garanzia} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Funzione} & \textbf{Garanzia} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{toUtenteDTO} &
+Omette l'hash della password. È l'unico modo in cui un utente lascia il
+server, quindi la credenziale non può sfuggire per dimenticanza in una rotta
+(\id{RNF\_F\_1}). \\
+
+\id{toQuizDTO} &
+Omette il campo che distingue la risposta corretta. Rende
+strutturalmente impossibile erogare un quiz con le soluzioni
+(\id{RNF\_F\_6}). \\
+
+\id{toTutorialDTO}, \id{toFeedbackDTO}, \id{toObiettivoDTO}, \id{toBadgeDTO} &
+Convertono le date in formato ISO 8601 e normalizzano i valori numerici
+provenienti dal DBMS. \\
+
+\end{longtable}
+
+\subsection{Gestione degli errori}
+\label{sec:sdd-errori}
+
+\diagramma{0.72}{cd-errori}{Gerarchia degli errori applicativi.}{fig:sdd-errori}
+
+I servizi non restituiscono descrizioni dell'esito: sollevano eccezioni che
+portano con sé lo stato HTTP e un codice stabile. Un unico middleware le
+traduce in risposte. La conseguenza pratica è che una rotta si riduce a tre
+righe — estrarre i parametri, invocare il servizio, serializzare — e che il
+percorso d'errore è identico in tutto il sistema.
+
+Un errore che non discende da \id{AppError} è considerato imprevisto:
+produce \id{500} con un messaggio generico, mentre il dettaglio resta nei
+log del server (\id{RNF\_A\_2}).
+
+\subsection{Iniezione delle dipendenze}
+\label{sec:sdd-iniezione}
+
+Ogni servizio riceve i propri collaboratori come parametri del costruttore,
+con un valore predefinito che costruisce l'implementazione reale:
+
+\begin{lstlisting}[language=Java,caption={Iniezione con valore predefinito.},
+                   label={lst:sdd-di}]
+export class QuizService {
+  constructor(
+    private readonly quizDao: QuizDao = new QuizDao(),
+    private readonly svolgimentoDao: SvolgimentoDao = new SvolgimentoDao(),
+    private readonly utenteDao: UtenteDao = new UtenteDao(),
+    private readonly tutorialDao: TutorialDao = new TutorialDao(),
+    private readonly obiettivoService: ObiettivoService = new ObiettivoService(),
+  ) {}
+  ...
+}
+\end{lstlisting}
+
+In esercizio la classe si costruisce da sola; nei test riceve dei doppi.
+Nessun contenitore di dipendenze, nessuna configurazione, e soprattutto
+nessun bisogno per i test di raggiungere campi privati per sostituire un
+collaboratore (\id{DG\_3}).
+
+Alla radice dell'applicazione la funzione \id{creaApp} riceve l'insieme dei
+servizi: è il punto in cui il grafo viene composto, ed è anche il punto in
+cui i test di integrazione lo sostituiscono per intero.
+
+\section{Pattern di progettazione adottati}
+\label{sec:sdd-pattern}
+
+\subsection{Data Access Object}
+
+\textbf{Problema.} Il codice di dominio non deve conoscere SQL, e il livello
+di persistenza deve poter essere sostituito nei test.
+
+\textbf{Soluzione.} Ogni aggregato ha un DAO che espone operazioni in termini
+di entità e nasconde le interrogazioni. I servizi dipendono dall'interfaccia
+del DAO, non dalla sua realizzazione.
+
+\textbf{Conseguenze.} L'intera suite di test gira senza database
+(\id{DG\_3}). In cambio, le interrogazioni non sono verificate dai test
+automatici: è il compromesso già dichiarato in \cref{sec:sdd-tradeoff}.
+
+\subsection{Facade (lato client)}
+
+\textbf{Problema.} Le pagine dell'interfaccia non devono conoscere URL,
+formato del trasporto e gestione degli errori di rete: se lo facessero, un
+cambiamento nell'API si propagherebbe in decine di componenti.
+
+\textbf{Soluzione.} Il modulo \file{src/api} espone un unico oggetto
+organizzato per sottosistema. Le pagine invocano
+\id{api.quiz.consegna(\dots)} e ricevono dati già tipizzati o un errore
+già normalizzato~\cite{gamma1994}.
+
+\textbf{Conseguenze.} Il confine fra client e server è attraversato in un
+solo punto. Il client non importa alcun modulo del server: i tipi di
+trasporto sono ridichiarati in \file{src/types}, duplicazione accettata
+consapevolmente in cambio dell'indipendenza fra le due applicazioni.
+
+\subsection{Chain of Responsibility (middleware)}
+
+\textbf{Problema.} Autenticazione, autorizzazione, validazione e gestione
+degli errori riguardano tutte le rotte e non appartengono a nessun
+sottosistema.
+
+\textbf{Soluzione.} Sono realizzate come middleware componibili, attraversati
+in sequenza: ciascuno può concludere la richiesta o passarla al successivo.
+Una rotta dichiara le proprie esigenze componendoli
+(\id{requireAdmin}, poi i validatori, poi il gestore).
+
+\textbf{Conseguenze.} Il controllo degli accessi è dichiarativo e leggibile
+accanto alla rotta; la matrice di \cref{sec:sdd-accessi} è verificabile
+leggendo i router. Il rovescio è che dimenticare un middleware su una rotta
+la lascia scoperta: per questo la matrice è coperta da test dedicati.
+
+\subsection{Template Method (transazioni)}
+
+\textbf{Problema.} Aprire una transazione, effettuare commit, gestire il
+rollback e rilasciare la connessione è una sequenza invariante che sarebbe
+ripetuta e sbagliata a ogni occorrenza.
+
+\textbf{Soluzione.} La funzione \id{withTransaction} fissa quella sequenza e
+riceve come parametro il lavoro variabile da eseguire.
+
+\textbf{Conseguenze.} È impossibile dimenticare un rollback o non rilasciare
+una connessione. La responsabilità che resta al chiamante è propagare la
+connessione ai DAO che invoca.
+
+\section{Pattern valutati e non adottati}
+
+Documentare i pattern scartati è utile quanto documentare quelli adottati:
+evita che la loro assenza sia scambiata per una svista.
+
+\begin{longtable}{@{}L{2.8cm} L{5.4cm} L{6.2cm}@{}}
+\toprule
+\textbf{Pattern} & \textbf{Applicazione ipotizzata} & \textbf{Perché è stato scartato} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Pattern} & \textbf{Applicazione ipotizzata} & \textbf{Perché è stato scartato} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Proxy &
+Caricare i tutorial in forma ridotta nel catalogo e recuperare il contenuto
+completo solo all'apertura. &
+Il catalogo contiene pochi elementi e la selezione delle colonne risolve lo
+stesso problema con una clausola SQL. Un Proxy aggiungerebbe una classe e un
+livello di indirezione per un beneficio che il database offre già. \\
+
+Observer &
+Notificare l'assegnazione di un badge a più destinatari interessati. &
+Esiste un solo destinatario, la risposta HTTP in corso. Il pattern avrebbe
+senso con notifiche via email o eventi persistenti, che sono fuori
+perimetro. \\
+
+Strategy &
+Rendere sostituibile il criterio di superamento del quiz. &
+Il criterio è unico e fissato dal dominio. La soglia è già una costante
+condivisa: renderla polimorfa non risponderebbe ad alcuna necessità reale. \\
+
+Repository con Unit of Work &
+Tracciare le modifiche alle entità e persisterle in blocco. &
+Le transazioni del sistema coinvolgono poche entità note a priori.
+\id{withTransaction} copre il caso d'uso senza introdurre un livello di
+mappatura degli oggetti. \\
+
+Singleton &
+Garantire un'unica istanza dei servizi. &
+I servizi sono privi di stato: istanziarli più volte non ha conseguenze, e
+il Singleton renderebbe più difficile sostituirli nei test. Il solo elemento
+realmente unico, il pool di connessioni, è già un modulo con inizializzazione
+differita. \\
+
+\end{longtable}
+
+\begin{nota}
+Un pattern citato in un documento di progettazione ma assente dal codice non
+è un dettaglio redazionale: è una descrizione errata del sistema, e induce
+chi legge a cercare una struttura che non esiste. Per questo i pattern di
+\cref{sec:sdd-pattern} corrispondono a classi e funzioni effettivamente
+presenti, mentre quelli valutati e non adottati sono dichiarati come tali
+invece di essere taciuti.
+\end{nota}

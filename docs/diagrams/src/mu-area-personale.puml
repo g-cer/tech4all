@@ -1,0 +1,22 @@
+@startsalt
+skinparam backgroundColor transparent
+skinparam defaultFontName Times
+skinparam defaultFontSize 13
+skinparam shadowing false
+{
+  {* <b>Tech4All | Catalogo | Chi siamo | Profilo }
+  ==
+  {/ Anagrafica | <b>Obiettivi | Feedback }
+  {+
+    <b>Obiettivi
+    Hai superato 3 quiz. Completa i quiz dei tutorial
+    per sbloccare i badge.
+    .
+    <i>[ badge ] | <b>Principiante | Conseguito il 09/12/2024
+    <i>[ badge ] | <b>Intermedio | Conseguito il 18/12/2024
+    <i>[ badge ] | Esperto | Richiede 5 quiz superati
+  }
+  ..
+  [ Torna alla home ]
+}
+@endsalt

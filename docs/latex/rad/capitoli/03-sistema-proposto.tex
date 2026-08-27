@@ -1,0 +1,372 @@
+\chapter{Sistema proposto}
+\label{cap:rad-sistema-proposto}
+
+\section{Panoramica}
+
+Tech4All è un'applicazione web che organizza contenuti didattici in un
+catalogo consultabile liberamente e ne verifica l'apprendimento tramite quiz
+corretti dal sistema. Il percorso tipico dell'utente è quello di
+\cref{fig:rad-ad-apprendimento}: dalla ricerca di un contenuto alla sua
+lettura, dalla verifica al riconoscimento del traguardo raggiunto.
+
+Due decisioni caratterizzano il sistema e ricorrono in tutto il documento.
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+  \item[Consultazione libera] Catalogo, tutorial, feedback e quiz sono
+    visibili senza autenticazione. La registrazione è richiesta solo per
+    \emph{contribuire} (consegnare un quiz, lasciare un feedback) o per
+    accedere a dati personali. Questa scelta discende direttamente da
+    \id{OB\_1}: chi ha poca dimestichezza con il digitale è spesso scoraggiato
+    proprio dalla richiesta di registrarsi.
+  \item[Verifica non aggirabile] La correzione di un quiz è un'operazione del
+    sistema, non del dispositivo dell'utente. Il quiz consegnato al browser
+    non contiene l'indicazione della risposta corretta, che viene rivelata
+    solo insieme all'esito. È la condizione perché \id{OB\_2} e \id{OB\_3}
+    abbiano senso: un progresso che si può falsificare non misura nulla.
+\end{description}
+
+\diagramma{0.78}{ad-apprendimento}{Percorso di apprendimento nel sistema
+proposto.}{fig:rad-ad-apprendimento}
+
+\section{Attori}
+\label{sec:rad-attori}
+
+Il sistema riconosce tre attori, in relazione di generalizzazione fra loro
+(\cref{tab:rad-attori}). Non esistono attori esterni non umani: il sistema non
+si integra con servizi di terze parti.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}L{3.0cm} L{11.2cm}@{}}
+\toprule
+\textbf{Attore} & \textbf{Descrizione} \\
+\midrule
+Visitatore &
+Chiunque raggiunga la piattaforma senza essere autenticato. Può consultare
+il catalogo, leggere i tutorial e i feedback altrui, vedere le domande di un
+quiz. Non può contribuire né accedere a dati personali. \\
+
+Utente &
+Visitatore che si è registrato e autenticato. Oltre a quanto precede, svolge
+i quiz, lascia feedback, consulta i propri progressi e amministra il proprio
+account. Generalizza \emph{Visitatore}. \\
+
+Amministratore &
+Utente con privilegi di gestione. Pubblica e aggiorna i contenuti, definisce
+i quiz e gli obiettivi, modera i feedback e amministra gli account.
+Generalizza \emph{Utente}: conserva tutte le capacità di un utente ordinario.
+\\
+\bottomrule
+\end{tabular}
+\caption{Attori del sistema.}
+\label{tab:rad-attori}
+\end{table}
+
+\begin{nota}
+Il ruolo di amministratore non è ottenibile dall'interno del sistema: non
+esiste alcuna funzionalità di promozione. Il primo amministratore è creato
+in fase di inizializzazione della base di dati. È una scelta deliberata:
+un'operazione di questa portata non deve poter essere raggiunta attraverso
+l'interfaccia applicativa.
+\end{nota}
+
+\section{Requisiti funzionali}
+\label{sec:rad-rf}
+
+I requisiti funzionali sono raggruppati per area, con il prefisso che ne
+identifica il sottosistema di appartenenza:
+\id{AU} per l'accesso e gli account,
+\id{CT} per il catalogo dei tutorial,
+\id{QZ} per i quiz,
+\id{FB} per i feedback,
+\id{OB} per gli obiettivi.
+La formulazione completa di ciascun requisito è riportata
+nell'appendice~\ref{cap:rad-app-requisiti}; qui se ne descrive la logica complessiva.
+
+\subsection{Accesso e gestione dell'account}
+
+Un visitatore può registrarsi fornendo nome, cognome, email e password
+(\id{RF\_AU\_1}) e autenticarsi con le sole credenziali (\id{RF\_AU\_2}). La
+disponibilità di un'email può essere verificata prima dell'invio del modulo
+(\id{RF\_AU\_5}), così che l'utente non scopra il conflitto solo a
+registrazione tentata.
+
+L'utente autenticato consulta il proprio profilo (\id{RF\_AU\_4}), ne
+modifica i dati anagrafici (\id{RF\_AU\_6}), cambia la propria password
+esibendo quella attuale (\id{RF\_AU\_7}), chiude la sessione
+(\id{RF\_AU\_3}) e può eliminare definitivamente il proprio account
+(\id{RF\_AU\_8}). L'amministratore consulta l'elenco degli utenti registrati
+(\id{RF\_AU\_9}) e può eliminarne l'account (\id{RF\_AU\_10}).
+
+\subsection{Catalogo dei tutorial}
+
+Il catalogo è consultabile per intero (\id{RF\_CT\_1}), ristretto a una
+categoria (\id{RF\_CT\_2}) o interrogato per parola chiave su titolo, testo e
+categoria (\id{RF\_CT\_3}); il singolo tutorial è consultabile per
+identificativo (\id{RF\_CT\_4}). L'elenco delle categorie ammesse è esposto
+dal sistema (\id{RF\_CT\_5}) anziché replicato nell'interfaccia: è la stessa
+sorgente a definire i valori accettati e quelli proposti.
+
+L'amministratore pubblica un tutorial (\id{RF\_CT\_6}), lo aggiorna
+(\id{RF\_CT\_7}) o lo ritira (\id{RF\_CT\_8}). Le immagini inserite nel corpo
+del contenuto sono caricate (\id{RF\_CT\_9}) e rimosse (\id{RF\_CT\_10}) come
+operazioni distinte, perché il loro ciclo di vita è quello della redazione,
+non quello del tutorial.
+
+\subsection{Quiz}
+
+Il quiz di un tutorial è consultabile da chiunque, ma privo delle soluzioni
+(\id{RF\_QZ\_1}). L'utente autenticato consegna le proprie risposte e riceve
+esito, numero di risposte esatte, soluzioni ed eventuali badge sbloccati
+(\id{RF\_QZ\_2}). L'amministratore definisce le domande di un quiz
+(\id{RF\_QZ\_3}), le ridefinisce integralmente (\id{RF\_QZ\_4}) o rimuove il
+quiz (\id{RF\_QZ\_5}).
+
+\subsection{Feedback}
+
+I feedback di un tutorial sono pubblici (\id{RF\_FB\_1}); l'utente consulta i
+propri (\id{RF\_FB\_2}), ne inserisce al più uno per tutorial
+(\id{RF\_FB\_3}), lo modifica (\id{RF\_FB\_4}) o lo elimina (\id{RF\_FB\_5}).
+L'amministratore può eliminare il feedback di un altro utente a fini di
+moderazione (\id{RF\_FB\_6}).
+
+\subsection{Obiettivi e badge}
+
+Gli obiettivi raggiungibili sono pubblici (\id{RF\_OB\_1}), così che l'utente
+sappia quali traguardi lo attendono; i badge conseguiti sono consultabili
+nella propria area (\id{RF\_OB\_2}). L'assegnazione è automatica e avviene
+come conseguenza del superamento di un quiz (\id{RF\_OB\_3}): non esiste
+alcuna funzionalità per assegnare un badge a mano. L'amministratore definisce
+(\id{RF\_OB\_4}), aggiorna (\id{RF\_OB\_5}) ed elimina (\id{RF\_OB\_6}) gli
+obiettivi.
+
+\section{Requisiti non funzionali}
+\label{sec:rad-rnf}
+
+I requisiti non funzionali seguono il modello FURPS+, integrato con le
+categorie di ISO/IEC 25010~\cite{iso25010}. Ogni requisito è accompagnato da
+un criterio di accettazione osservabile: requisiti che non si possono
+verificare non sono stati inclusi.
+
+\subsection{Funzionalità (sicurezza)}
+
+\begin{longtable}{@{}l L{5.2cm} L{6.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_F\_1} &
+Le password sono conservate esclusivamente come hash. &
+Nessuna risposta del sistema contiene la password o il suo hash; il valore
+memorizzato è un hash bcrypt~\cite{provos1999}. \\
+
+\id{RNF\_F\_2} &
+Nessuna operazione di modifica è eseguibile senza una sessione valida. &
+Ogni richiesta di modifica priva di sessione riceve risposta \id{401}. \\
+
+\id{RNF\_F\_3} &
+Le operazioni di gestione sono riservate agli amministratori. &
+Le stesse richieste, da un utente ordinario autenticato, ricevono \id{403}. \\
+
+\id{RNF\_F\_4} &
+L'autore di un'operazione è determinato dalla sessione, non dalla richiesta. &
+Un identificativo utente inviato nel corpo di una richiesta viene ignorato. \\
+
+\id{RNF\_F\_5} &
+Il contenuto dei tutorial non può veicolare codice eseguibile. &
+Marcatori \id{script}, attributi di evento e URL con schema \id{javascript:}
+non sono presenti nel contenuto memorizzato~\cite{owasp2021}. \\
+
+\id{RNF\_F\_6} &
+Le soluzioni di un quiz non sono conoscibili prima della consegna. &
+La rappresentazione di un quiz non contiene alcun campo che distingua la
+risposta corretta. \\
+
+\id{RNF\_F\_7} &
+I nomi di file forniti dall'esterno non permettono di uscire dalla cartella
+consentita. &
+Un nome contenente separatori di percorso o risalite viene rifiutato con
+\id{400}. \\
+
+\end{longtable}
+
+\subsection{Usabilità}
+
+\begin{longtable}{@{}l L{5.2cm} L{6.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_U\_1} &
+L'interfaccia usa un linguaggio non tecnico e in lingua italiana. &
+Nessun messaggio rivolto all'utente contiene termini informatici non
+definiti nel glossario. \\
+
+\id{RNF\_U\_2} &
+Ogni errore è comunicato indicando che cosa correggere. &
+Le risposte di validazione elencano i campi non conformi con un messaggio in
+linguaggio naturale. \\
+
+\id{RNF\_U\_3} &
+Le operazioni irreversibili richiedono una conferma esplicita. &
+Eliminazione di account, tutorial, quiz e feedback presentano una richiesta
+di conferma prima di essere inviate. \\
+
+\id{RNF\_U\_4} &
+La consultazione dei contenuti non richiede registrazione. &
+Catalogo, tutorial, feedback, quiz e obiettivi rispondono \id{200} a un
+chiamante non autenticato. \\
+
+\end{longtable}
+
+\subsection{Affidabilità}
+
+\begin{longtable}{@{}l L{5.2cm} L{6.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_A\_1} &
+Le operazioni che coinvolgono più entità sono atomiche. &
+L'interruzione della creazione di un quiz non lascia quiz privi di domande. \\
+
+\id{RNF\_A\_2} &
+Un errore imprevisto non rivela dettagli interni del sistema. &
+La risposta \id{500} non contiene messaggi del DBMS, percorsi di file o
+tracce di esecuzione. \\
+
+\id{RNF\_A\_3} &
+Il comportamento del sistema è verificato automaticamente. &
+La copertura dei test non scende sotto l'85\% delle istruzioni e l'80\% delle
+diramazioni; la soglia è imposta dalla suite, non solo dichiarata. \\
+
+\id{RNF\_A\_4} &
+Il conteggio dei progressi resta corretto anche in caso di tentativi
+ripetuti. &
+Ripetere un quiz già superato non altera il numero di quiz superati. \\
+
+\end{longtable}
+
+\subsection{Prestazioni}
+
+\begin{longtable}{@{}l L{5.2cm} L{6.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_P\_1} &
+Il caricamento di un quiz non degrada con il numero di domande. &
+L'aggregato quiz-domande-risposte è letto con una sola interrogazione. \\
+
+\id{RNF\_P\_2} &
+Ricerca e filtro sono eseguiti dalla base di dati. &
+Il sistema non trasferisce l'intero catalogo per poi ridurlo altrove. \\
+
+\end{longtable}
+
+\subsection{Supportabilità}
+
+\begin{longtable}{@{}l L{5.2cm} L{6.6cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Id} & \textbf{Requisito} & \textbf{Criterio di accettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_S\_1} &
+I sottosistemi condividono la stessa organizzazione interna. &
+Ogni sottosistema è composto da rotte, servizio, DAO ed entità con le
+medesime responsabilità. \\
+
+\id{RNF\_S\_2} &
+I vincoli di dominio sono definiti una sola volta. &
+Lunghezze, formati e soglie hanno un'unica definizione, condivisa fra
+validazione delle richieste e regole di dominio. \\
+
+\id{RNF\_S\_3} &
+Ogni modifica al codice è verificata automaticamente. &
+Analisi statica, controllo dei tipi, test e compilazione sono eseguiti a
+ogni integrazione. \\
+
+\end{longtable}
+
+\section{Vincoli}
+\label{sec:rad-vincoli}
+
+I vincoli, o pseudo-requisiti, non descrivono ciò che il sistema fa ma entro
+quali limiti deve essere realizzato.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}l L{12.2cm}@{}}
+\toprule
+\textbf{Id} & \textbf{Vincolo} \\
+\midrule
+\id{V\_1} & Il sistema è un'applicazione web, raggiungibile con un browser e
+            senza installazione sul dispositivo dell'utente. \\
+\id{V\_2} & La comunicazione fra interfaccia e sistema avviene tramite
+            un'interfaccia HTTP con rappresentazioni JSON. \\
+\id{V\_3} & La persistenza è affidata a un DBMS relazionale. \\
+\id{V\_4} & Il trattamento dei dati personali è conforme al GDPR: l'utente
+            può consultare, rettificare ed eliminare i propri dati. \\
+\id{V\_5} & Il sistema è realizzato con tecnologie open source e non dipende
+            da servizi a pagamento per il proprio funzionamento. \\
+\bottomrule
+\end{tabular}
+\caption{Vincoli di progetto.}
+\label{tab:rad-vincoli}
+\end{table}
+
+\section{Funzionalità escluse dal perimetro}
+\label{sec:rad-fuori-perimetro}
+
+Tre funzionalità sono state deliberatamente escluse. Sono elencate qui perché
+un requisito assente è un'informazione tanto quanto uno presente, e perché la
+loro assenza è una scelta e non una dimenticanza.
+
+\begin{description}[leftmargin=1.2cm,style=nextline]
+  \item[Assistente conversazionale] Il sistema può incorporare un widget di
+    dialogo fornito da terzi, configurabile e disattivabile. Non implementa
+    logica conversazionale propria: realizzarla richiederebbe competenze e
+    infrastrutture estranee agli obiettivi del progetto, e un assistente
+    inaffidabile su un pubblico inesperto sarebbe dannoso più che utile.
+  \item[Recupero della password] Richiede l'invio di posta elettronica
+    transazionale, quindi un servizio esterno e un dominio verificato. In sua
+    assenza, un utente che perde le credenziali deve registrarsi nuovamente.
+  \item[Supporto multilingua] Interfaccia e contenuti sono in italiano. Il
+    sistema non è predisposto per la traduzione dei tutorial, che sono testi
+    redatti e non stringhe di interfaccia.
+\end{description}

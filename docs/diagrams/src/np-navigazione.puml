@@ -1,0 +1,52 @@
+@startuml
+!include _stile.puml
+
+title Percorsi di navigazione
+
+state "Pagina iniziale" as Home
+state "Catalogo" as Catalogo
+state "Tutorial" as Tutorial
+state "Accesso" as Login
+state "Registrazione" as Registrazione
+state "Home autenticata" as HomeAuth
+state "Chi siamo" as ChiSiamo
+state "Area personale" as AreaUtente
+state "Area amministratore" as AreaAdmin
+state "Redazione tutorial" as Redazione
+state "Definizione quiz" as DefQuiz
+
+[*] --> Home
+
+Home --> Catalogo
+Home --> Login
+Home --> Registrazione
+Catalogo --> Tutorial
+Tutorial --> Catalogo
+
+Registrazione --> HomeAuth : registrazione completata
+Login --> HomeAuth : credenziali valide\n[ruolo = utente]
+Login --> AreaAdmin : credenziali valide\n[ruolo = admin]
+
+HomeAuth --> Catalogo
+HomeAuth --> ChiSiamo
+HomeAuth --> AreaUtente
+
+AreaUtente --> HomeAuth
+AreaAdmin --> Catalogo
+
+Catalogo --> Redazione : [ruolo = admin]
+Tutorial --> Redazione : [ruolo = admin]
+Tutorial --> DefQuiz : [ruolo = admin]
+Redazione --> Tutorial
+DefQuiz --> Tutorial
+
+HomeAuth --> Home : chiusura della sessione
+AreaUtente --> Home : eliminazione dell'account
+
+note bottom
+  Le pagine raggiungibili senza autenticazione sono
+  Pagina iniziale, Catalogo, Tutorial, Accesso e Registrazione.
+  Le altre reindirizzano all'accesso se la sessione è assente.
+end note
+
+@enduml

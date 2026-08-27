@@ -1,0 +1,84 @@
+@startuml
+!include _stile.puml
+
+title Progettazione degli oggetti — sottosistema Gestione quiz
+
+skinparam classAttributeIconSize 0
+
+package routes {
+  class QuizRouter {
+    +GET  /quiz/tutorial/:tutorialId
+    +POST /quiz/tutorial/:tutorialId
+    +PUT  /quiz/:id
+    +DELETE /quiz/:id
+    +POST /quiz/:id/svolgimenti
+  }
+}
+
+package services {
+  class QuizService {
+    +getQuizPerTutorial(tutorialId): Quiz
+    +creaQuiz(tutorialId, domande): Quiz
+    +aggiornaQuiz(quizId, domande): Quiz
+    +eliminaQuiz(quizId): void
+    +eseguiQuiz(quizId, utenteId, risposte): EsitoSvolgimento
+  }
+  class ObiettivoService {
+    +valutaConseguimenti(utenteId, quizSuperati, conn): Obiettivo[]
+  }
+}
+
+package dao {
+  class QuizDao {
+    +findById(id): Quiz
+    +findByTutorial(tutorialId): Quiz
+    +create(quiz, conn): number
+    +replaceDomande(quizId, domande, conn): void
+    +delete(id): boolean
+  }
+  class SvolgimentoDao {
+    +find(quizId, utenteId): Svolgimento
+    +save(svolgimento, conn): void
+    +contaQuizSuperati(utenteId, conn): number
+  }
+  class UtenteDao
+  class TutorialDao
+}
+
+package entity {
+  class Quiz
+  class Domanda
+  class Risposta
+  class Svolgimento
+}
+
+package dto {
+  class "toQuizDTO()" as QuizDTO <<function>>
+}
+
+QuizRouter --> QuizService
+QuizRouter ..> QuizDTO : serializza
+
+QuizService --> QuizDao
+QuizService --> SvolgimentoDao
+QuizService --> UtenteDao
+QuizService --> TutorialDao
+QuizService --> ObiettivoService
+
+QuizDao ..> Quiz : costruisce
+QuizDao ..> Domanda
+QuizDao ..> Risposta
+SvolgimentoDao ..> Svolgimento
+QuizDTO ..> Quiz : legge
+
+Quiz "1" *-- "1..*" Domanda
+Domanda "1" *-- "2..5" Risposta
+
+note bottom of QuizDTO
+  `toQuizDTO` omette il campo `corretta`:
+  è il punto in cui l'invariante
+  «le soluzioni non escono dal server»
+  viene fatto rispettare.
+end note
+
+@enduml

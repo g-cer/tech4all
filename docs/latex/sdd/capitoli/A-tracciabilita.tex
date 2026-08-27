@@ -1,0 +1,146 @@
+\chapter{Tracciabilità delle decisioni di progetto}
+\label{cap:sdd-app-tracciabilita}
+
+Questa appendice costituisce il secondo anello della catena di tracciabilità
+del progetto. Il RAD lega requisiti, casi d'uso e scenari; qui i requisiti non
+funzionali sono legati agli obiettivi di progettazione e ai meccanismi che li
+realizzano; il Test Document chiude la catena legando ogni requisito ai casi
+di test che lo verificano.
+
+\section{Requisiti non funzionali, obiettivi e meccanismi}
+
+\begin{longtable}{@{}l l L{9.4cm}@{}}
+\toprule
+\textbf{Requisito} & \textbf{Obiettivo} & \textbf{Meccanismo di realizzazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requisito} & \textbf{Obiettivo} & \textbf{Meccanismo di realizzazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_F\_1} & \id{DG\_1} &
+Hashing bcrypt in \id{AutenticazioneService}; omissione dell'hash in
+\id{toUtenteDTO} (\cref{sec:sdd-dto}). \\
+
+\id{RNF\_F\_2} & \id{DG\_1} &
+Middleware \id{requireAuth} (\cref{sec:sdd-accessi}). \\
+
+\id{RNF\_F\_3} & \id{DG\_1} &
+Middleware \id{requireAdmin} (\cref{sec:sdd-accessi}). \\
+
+\id{RNF\_F\_4} & \id{DG\_1} &
+Identità presa dal token; nessuna rotta accetta un identificativo utente per
+stabilire l'autore (\id{DP\_1}). \\
+
+\id{RNF\_F\_5} & \id{DG\_1} &
+Sanificazione dell'HTML in ingresso in \id{TutorialService}. \\
+
+\id{RNF\_F\_6} & \id{DG\_1}, \id{DG\_2} &
+\id{toQuizDTO} omette il campo delle soluzioni; correzione lato server
+(\id{DP\_2}). \\
+
+\id{RNF\_F\_7} & \id{DG\_1} &
+Nomi generati dal server; risoluzione e verifica del percorso nella cartella
+consentita. \\
+\midrule
+
+\id{RNF\_U\_1} & --- &
+Messaggi d'errore in italiano prodotti dal server; il client non ne compone
+di propri. \\
+
+\id{RNF\_U\_2} & \id{DG\_2} &
+Validatori dichiarativi sulle rotte; l'elenco dei campi non conformi è nel
+corpo della risposta. \\
+
+\id{RNF\_U\_3} & --- &
+Conferma esplicita nell'interfaccia prima delle operazioni irreversibili. \\
+
+\id{RNF\_U\_4} & --- &
+Rotte di lettura prive di middleware di autenticazione
+(\cref{sec:sdd-accessi}). \\
+\midrule
+
+\id{RNF\_A\_1} & \id{DG\_5} &
+\id{withTransaction} attorno alle operazioni composite
+(\cref{sec:sdd-persistenza}). \\
+
+\id{RNF\_A\_2} & \id{DG\_1} &
+Gestore centralizzato degli errori (\cref{sec:sdd-errori}). \\
+
+\id{RNF\_A\_3} & \id{DG\_3} &
+Iniezione delle dipendenze (\cref{sec:sdd-iniezione}) e soglie di copertura
+imposte dalla suite. \\
+
+\id{RNF\_A\_4} & \id{DG\_5} &
+Conteggio derivato dagli svolgimenti; uno svolgimento superato non viene
+sovrascritto (\id{DP\_4}). \\
+\midrule
+
+\id{RNF\_P\_1} & --- &
+Aggregato quiz letto con una sola interrogazione (\id{DP\_6}). \\
+
+\id{RNF\_P\_2} & --- &
+Filtro e ricerca eseguiti da \id{TutorialDao} in SQL. \\
+\midrule
+
+\id{RNF\_S\_1} & \id{DG\_4} &
+Stessa stratificazione in tutti i sottosistemi
+(\cref{sec:sdd-sottosistemi}). \\
+
+\id{RNF\_S\_2} & \id{DG\_2} &
+Modulo dei vincoli di dominio condiviso fra validatori delle rotte e servizi. \\
+
+\id{RNF\_S\_3} & \id{DG\_3} &
+Analisi statica, controllo dei tipi, test e compilazione eseguiti a ogni
+integrazione. \\
+
+\end{longtable}
+
+\section{Casi d'uso e sottosistemi}
+
+\begin{longtable}{@{}l L{4.6cm} L{3.4cm} L{4.0cm}@{}}
+\toprule
+\textbf{Caso d'uso} & \textbf{Nome} & \textbf{Sottosistema} & \textbf{Servizio} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso d'uso} & \textbf{Nome} & \textbf{Sottosistema} & \textbf{Servizio} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{UC\_01} & Registrarsi                   & Autenticazione     & \id{AutenticazioneService} \\
+\id{UC\_02} & Autenticarsi                  & Autenticazione     & \id{AutenticazioneService} \\
+\id{UC\_03} & Terminare la sessione         & Autenticazione     & middleware di sessione \\
+\id{UC\_04} & Gestire il proprio profilo    & Gestione account   & \id{AccountService} \\
+\id{UC\_05} & Eliminare il proprio account  & Gestione account   & \id{AccountService} \\
+\id{UC\_06} & Consultare il catalogo        & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_07} & Cercare un tutorial           & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_08} & Consultare un tutorial        & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_09} & Svolgere un quiz              & Gestione quiz      & \id{QuizService} \\
+\id{UC\_10} & Conseguire un obiettivo       & Gestione obiettivi & \id{ObiettivoService} \\
+\id{UC\_11} & Consultare i propri progressi & Gestione obiettivi & \id{ObiettivoService} \\
+\id{UC\_12} & Gestire il proprio feedback   & Gestione feedback  & \id{FeedbackService} \\
+\id{UC\_13} & Pubblicare un tutorial        & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_14} & Caricare un'immagine          & Gestione tutorial  & middleware di upload \\
+\id{UC\_15} & Aggiornare un tutorial        & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_16} & Ritirare un tutorial          & Gestione tutorial  & \id{TutorialService} \\
+\id{UC\_17} & Definire il quiz              & Gestione quiz      & \id{QuizService} \\
+\id{UC\_18} & Rimuovere il quiz             & Gestione quiz      & \id{QuizService} \\
+\id{UC\_19} & Gestire gli obiettivi         & Gestione obiettivi & \id{ObiettivoService} \\
+\id{UC\_20} & Amministrare gli account      & Gestione account   & \id{AccountService} \\
+\id{UC\_21} & Moderare i feedback           & Gestione feedback  & \id{FeedbackService} \\
+
+\end{longtable}
+
+\begin{nota}
+\id{UC\_03} e \id{UC\_14} non hanno un servizio applicativo: sono realizzati
+interamente da middleware. Il primo consiste nella rimozione del cookie di
+sessione, il secondo nella ricezione e normalizzazione di un file. In
+entrambi i casi non esistono regole di dominio da applicare, e interporre un
+servizio vuoto avrebbe aggiunto un livello senza contenuto.
+\end{nota}

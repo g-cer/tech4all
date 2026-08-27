@@ -1,0 +1,372 @@
+\chapter{Servizi dei sottosistemi}
+\label{cap:sdd-servizi}
+
+Questo capitolo definisce l'interfaccia di ciascun sottosistema su due
+livelli: le risorse HTTP che espone verso il client e le operazioni che il
+suo servizio offre al resto del server. Il primo livello è il contratto
+esterno del sistema; il secondo è il contratto fra i livelli architetturali.
+
+\begin{nota}
+\textbf{Convenzioni delle risposte.} Le operazioni di lettura rispondono
+\id{200}, le creazioni \id{201}, le operazioni che non restituiscono
+contenuto \id{204}. Gli errori seguono la gerarchia di
+\cref{sec:sdd-errori}: \id{400} dati non validi, \id{401} sessione assente,
+\id{403} permessi insufficienti, \id{404} risorsa inesistente,
+\id{409} conflitto con lo stato attuale.
+\end{nota}
+
+\section{Autenticazione}
+
+\begin{longtable}{@{}L{5.2cm} L{2.6cm} L{6.2cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{POST /auth/registrazione} & pubblico &
+Crea un account con ruolo utente. Non apre la sessione. \\
+
+\id{POST /auth/login} & pubblico &
+Verifica le credenziali e deposita il cookie di sessione. \\
+
+\id{POST /auth/logout} & pubblico &
+Invalida il cookie di sessione. \\
+
+\id{GET /auth/me} & autenticato &
+Profilo dell'utente della sessione corrente. \\
+
+\id{GET /auth/email-disponibile} & pubblico &
+Indica se un'email è ancora libera. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{AutenticazioneService}}
+
+\begin{longtable}{@{}L{5.8cm} L{8.6cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{registra(dati)} &
+Crea l'utente con la password sottoposta ad hashing.
+\emph{Solleva} \id{ValidationError} se la password non rispetta la politica,
+\id{ConflictError} se l'email è già in uso. \\
+
+\id{login(email, password)} &
+Restituisce l'utente se le credenziali sono valide.
+\emph{Solleva} \id{UnauthorizedError} con lo stesso messaggio sia per email
+inesistente sia per password errata. \\
+
+\id{emailEsiste(email)} &
+Restituisce un booleano. Non solleva eccezioni. \\
+
+\end{longtable}
+
+\section{Gestione account}
+
+\begin{longtable}{@{}L{5.2cm} L{2.6cm} L{6.2cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{GET /accounts/me} & autenticato & Profilo dell'utente della sessione. \\
+\id{PUT /accounts/me} & autenticato & Aggiorna dati anagrafici e password. \\
+\id{DELETE /accounts/me} & autenticato & Elimina il proprio account. \\
+\id{GET /accounts/me/badge} & autenticato & Badge conseguiti. \\
+\id{GET /accounts} & amministratore & Elenco degli utenti registrati. \\
+\id{DELETE /accounts/:id} & amministratore & Elimina l'account indicato. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{AccountService}}
+
+\begin{longtable}{@{}L{5.8cm} L{8.6cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{getUtente(id)} &
+\emph{Solleva} \id{NotFoundError} se l'utente non esiste. \\
+
+\id{getUtenti()} &
+Elenco completo, ordinato per cognome e nome. \\
+
+\id{aggiornaProfilo(id, dati)} &
+I campi assenti restano invariati. Il cambio password richiede quella
+attuale.
+\emph{Solleva} \id{NotFoundError}, \id{ConflictError} se la nuova email è già
+in uso, \id{UnauthorizedError} se la password attuale non è corretta,
+\id{ValidationError} se la nuova password è debole. \\
+
+\id{eliminaUtente(id)} &
+Rimuove l'account; feedback, svolgimenti e conseguimenti cadono per vincolo
+di integrità. \emph{Solleva} \id{NotFoundError}. \\
+
+\end{longtable}
+
+\section{Gestione tutorial}
+
+\begin{longtable}{@{}L{5.2cm} L{2.6cm} L{6.2cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{GET /tutorials} & pubblico &
+Catalogo, con filtro facoltativo per categoria. \\
+\id{GET /tutorials/categorie} & pubblico & Categorie ammesse. \\
+\id{GET /tutorials/ricerca} & pubblico & Ricerca per parola chiave. \\
+\id{GET /tutorials/:id} & pubblico & Dettaglio di un tutorial. \\
+\id{POST /tutorials} & amministratore & Pubblica un tutorial. \\
+\id{PUT /tutorials/:id} & amministratore & Aggiorna un tutorial. \\
+\id{DELETE /tutorials/:id} & amministratore & Ritira un tutorial. \\
+\id{POST /tutorials/immagini} & amministratore & Carica un'immagine di contenuto. \\
+\id{DELETE /tutorials/immagini/:nome} & amministratore & Elimina un'immagine di contenuto. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{TutorialService}}
+
+\begin{longtable}{@{}L{5.8cm} L{8.6cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{getTutorials(categoria?)} &
+Senza argomento restituisce l'intero catalogo.
+\emph{Solleva} \id{ValidationError} se la categoria non esiste. \\
+
+\id{getTutorial(id)} & \emph{Solleva} \id{NotFoundError}. \\
+
+\id{cercaTutorial(chiave)} &
+Chiave vuota restituisce un elenco vuoto senza interrogare il database. \\
+
+\id{creaTutorial(dati)} &
+Valida i vincoli di dominio, sanifica il contenuto e persiste.
+\emph{Solleva} \id{ValidationError}. \\
+
+\id{aggiornaTutorial(id, dati)} &
+Come sopra. \emph{Solleva} anche \id{NotFoundError}. \\
+
+\id{eliminaTutorial(id)} &
+Quiz, domande, risposte, svolgimenti e feedback cadono in cascata.
+\emph{Solleva} \id{NotFoundError}. \\
+
+\end{longtable}
+
+\section{Gestione quiz}
+
+\begin{longtable}{@{}L{5.2cm} L{2.6cm} L{6.2cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{GET /quiz/tutorial/:tutorialId} & pubblico &
+Quiz del tutorial, privo delle soluzioni. \\
+\id{POST /quiz/tutorial/:tutorialId} & amministratore & Definisce il quiz. \\
+\id{PUT /quiz/:id} & amministratore & Sostituisce le domande. \\
+\id{DELETE /quiz/:id} & amministratore & Rimuove il quiz. \\
+\id{POST /quiz/:id/svolgimenti} & autenticato &
+Consegna le risposte e ottiene la correzione. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{QuizService}}
+
+\begin{longtable}{@{}L{5.8cm} L{8.6cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{getQuizPerTutorial(tutorialId)} &
+\emph{Solleva} \id{NotFoundError} se il tutorial non ha un quiz. \\
+
+\id{creaQuiz(tutorialId, domande)} &
+Inserisce quiz, domande e risposte in un'unica transazione.
+\emph{Solleva} \id{NotFoundError} se il tutorial non esiste,
+\id{ConflictError} se ha già un quiz, \id{ValidationError} se una domanda non
+ha esattamente una risposta corretta o viola i limiti di lunghezza. \\
+
+\id{aggiornaQuiz(quizId, domande)} &
+Sostituisce integralmente le domande; gli svolgimenti sono conservati.
+\emph{Solleva} \id{NotFoundError}, \id{ValidationError}. \\
+
+\id{eliminaQuiz(quizId)} & \emph{Solleva} \id{NotFoundError}. \\
+
+\id{eseguiQuiz(quizId, utenteId, risposte)} &
+Corregge, registra lo svolgimento, ricalcola i quiz superati e delega
+l'assegnazione dei badge. Non declassa un quiz già superato.
+\emph{Solleva} \id{NotFoundError} se quiz o utente non esistono,
+\id{ValidationError} se il quiz non ha domande. \\
+
+\end{longtable}
+
+\section{Gestione feedback}
+
+\begin{longtable}{@{}L{6.0cm} L{2.6cm} L{5.4cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{GET /feedback/tutorial/:tutorialId} & pubblico & Feedback di un tutorial. \\
+\id{GET /feedback/me} & autenticato & Feedback dell'utente. \\
+\id{POST /feedback/tutorial/:tutorialId} & autenticato & Inserisce il proprio feedback. \\
+\id{PUT /feedback/tutorial/:tutorialId} & autenticato & Modifica il proprio feedback. \\
+\id{DELETE /feedback/tutorial/:tutorialId} & autenticato & Elimina il proprio feedback. \\
+\id{DELETE /feedback/tutorial/:tutorialId/} \id{utente/:utenteId} & autenticato &
+Elimina il feedback indicato; consentito solo se ne è l'autore o è
+amministratore. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{FeedbackService}}
+
+\begin{longtable}{@{}L{5.8cm} L{8.6cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{getFeedbackTutorial(tutorialId)} & Elenco ordinato per data decrescente. \\
+\id{getFeedbackUtente(utenteId)} & Elenco dei feedback dell'utente. \\
+
+\id{creaFeedback(utenteId, tutorialId, dati)} &
+\emph{Solleva} \id{ValidationError} sui vincoli di valutazione e commento,
+\id{NotFoundError} se il tutorial non esiste, \id{ConflictError} se l'utente
+ha già valutato quel tutorial. \\
+
+\id{aggiornaFeedback(utenteId, tutorialId, dati)} &
+\emph{Solleva} \id{ValidationError}, \id{NotFoundError}. \\
+
+\id{eliminaFeedback(richiedente, autore, tutorialId, isAdmin)} &
+Un utente che tenti di eliminare un feedback altrui riceve
+\id{NotFoundError}, non \id{ForbiddenError}: negare l'esistenza è preferibile
+a confermarla a chi non ha titolo. \\
+
+\end{longtable}
+
+\section{Gestione obiettivi}
+
+\begin{longtable}{@{}L{5.2cm} L{2.6cm} L{6.2cm}@{}}
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Risorsa} & \textbf{Accesso} & \textbf{Descrizione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{GET /obiettivi} & pubblico & Obiettivi raggiungibili e relative soglie. \\
+\id{POST /obiettivi} & amministratore & Definisce un obiettivo. \\
+\id{PUT /obiettivi/:nome} & amministratore & Aggiorna un obiettivo. \\
+\id{DELETE /obiettivi/:nome} & amministratore & Elimina un obiettivo. \\
+
+\end{longtable}
+
+\textbf{Operazioni di \id{ObiettivoService}}
+
+\begin{longtable}{@{}L{5.4cm} L{9.0cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Contratto} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{getObiettivi()} & Catalogo ordinato per soglia crescente. \\
+
+\id{getBadgeUtente(utenteId)} &
+Conseguimenti abbinati al rispettivo obiettivo; i conseguimenti il cui
+obiettivo è stato eliminato sono omessi. \\
+
+\id{valutaConseguimenti(utenteId, quizSuperati, conn?)} &
+Assegna gli obiettivi la cui soglia è raggiunta e non ancora conseguiti;
+restituisce quelli sbloccati dalla chiamata. È idempotente: invocata due
+volte con lo stesso stato non assegna nulla la seconda volta. Accetta una
+connessione transazionale. \\
+
+\id{creaObiettivo(dati)} &
+\emph{Solleva} \id{ValidationError}, \id{ConflictError} se il nome è già usato. \\
+
+\id{aggiornaObiettivo(nome, dati)} &
+\emph{Solleva} \id{NotFoundError}, \id{ValidationError}. \\
+
+\id{eliminaObiettivo(nome)} &
+I conseguimenti associati cadono in cascata.
+\emph{Solleva} \id{NotFoundError}. \\
+
+\end{longtable}

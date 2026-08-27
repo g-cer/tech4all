@@ -1,0 +1,55 @@
+@startuml
+!include _stile.puml
+
+title SD_01 — Svolgimento di un quiz con conseguimento di un obiettivo
+
+actor Utente as U
+participant "«boundary»\n:InterfacciaQuiz" as B
+participant "«control»\n:GestoreQuiz" as GQ
+participant "«control»\n:GestoreObiettivi" as GO
+participant "«entity»\nquiz:Quiz" as Q
+participant "«entity»\nsvolgimento:Svolgimento" as S
+participant "«entity»\nutente:Utente" as E
+
+U -> B : apre il quiz del tutorial
+B -> GQ : richiediQuiz(tutorial)
+GQ -> Q : leggi domande e risposte
+GQ --> B : quiz senza soluzioni
+note right of B
+  Le risposte corrette non
+  lasciano il sistema prima
+  della consegna.
+end note
+B --> U : mostra le domande
+
+U -> B : seleziona una risposta\nper ogni domanda
+U -> B : consegna
+
+B -> GQ : correggi(quiz, utente, risposte)
+activate GQ
+
+GQ -> Q : risposte corrette
+GQ -> GQ : conta le risposte esatte
+GQ -> GQ : esito = esatte / totale >= 0,7
+
+GQ -> S : registra(esito, esatte, data)
+note right of S
+  Un quiz già superato non
+  viene sovrascritto da un
+  tentativo peggiore.
+end note
+
+GQ -> E : aggiorna il numero\ndi quiz superati
+
+GQ -> GO : valutaConseguimenti(utente)
+activate GO
+GO -> GO : confronta i quiz superati\ncon le soglie degli obiettivi
+GO --> GQ : obiettivi appena raggiunti
+deactivate GO
+
+GQ --> B : esito, soluzioni, badge sbloccati
+deactivate GQ
+
+B --> U : mostra esito, soluzioni\ne badge conseguiti
+
+@enduml

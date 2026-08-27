@@ -1,0 +1,44 @@
+% =============================================================================
+%  Tech4All — Test Document
+%
+%  Compilazione:  make test    (dalla cartella docs/)
+%                 latexmk -pdf main.tex   (da questa cartella)
+% =============================================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage{../shared/tech4all}
+\addbibresource{../shared/riferimenti.bib}
+
+\newcommand{\titoloDocumento}{Test Document}
+\newcommand{\siglaDocumento}{TD}
+\newcommand{\versioneDocumento}{1.0}
+\impostaNomeDocumento{Test Document}
+
+\hypersetup{
+  pdftitle={Tech4All — Test Document},
+  pdfsubject={Strategia, casi di test e risultati della verifica di Tech4All}
+}
+
+\begin{document}
+
+\input{../shared/frontespizio}
+
+\pagenumbering{roman}
+\tableofcontents
+\cleardoublepage
+\pagenumbering{arabic}
+
+\include{capitoli/01-introduzione}
+\include{capitoli/02-strategia}
+\include{capitoli/03-derivazione}
+\include{capitoli/04-casi-di-test}
+\include{capitoli/05-esecuzione}
+\include{capitoli/06-conclusioni}
+\input{../shared/glossario}
+
+\appendix
+\include{capitoli/A-tracciabilita}
+
+\printbibliography[heading=bibintoc,title={Riferimenti bibliografici}]
+
+\end{document}

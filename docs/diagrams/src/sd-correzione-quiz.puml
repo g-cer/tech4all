@@ -1,0 +1,67 @@
+@startuml
+!include _stile.puml
+
+title Correzione di un quiz — livello di progettazione
+
+participant ":QuizRouter" as R
+participant ":QuizService" as S
+participant ":QuizDao" as QD
+participant ":SvolgimentoDao" as SD
+participant ":UtenteDao" as UD
+participant ":ObiettivoService" as OS
+participant "withTransaction" as TX
+database MySQL as DB
+
+R -> S : eseguiQuiz(quizId, utenteId, risposte)
+activate S
+
+S -> QD : findById(quizId)
+QD -> DB : SELECT quiz JOIN domanda JOIN risposta
+note right of QD
+  Una sola interrogazione per
+  l'intero aggregato: il costo
+  non cresce con il numero
+  di domande.
+end note
+QD --> S : Quiz completo
+
+S -> UD : findById(utenteId)
+UD --> S : Utente
+
+S -> S : associa le risposte per\nidentificativo di domanda
+S -> S : esito = esatte / totale >= 0,7
+
+S -> TX : withTransaction(...)
+activate TX
+
+  TX -> SD : find(quizId, utenteId)
+  SD --> TX : Svolgimento | null
+
+  alt quiz non ancora superato
+    TX -> SD : save(svolgimento, conn)
+  end
+
+  TX -> SD : contaQuizSuperati(utenteId, conn)
+  SD --> TX : n
+
+  alt il contatore è disallineato
+    TX -> UD : updateQuizSuperati(utenteId, n, conn)
+  end
+
+  TX -> OS : valutaConseguimenti(utenteId, n, conn)
+  OS --> TX : obiettivi sbloccati
+
+deactivate TX
+TX --> S : commit
+
+S --> R : esito, risposte esatte,\nsoluzioni, badge
+deactivate S
+
+note over TX
+  Tutte le scritture usano la connessione
+  della transazione: usare il pool
+  bloccherebbe la riga contro i lock
+  della transazione stessa.
+end note
+
+@enduml

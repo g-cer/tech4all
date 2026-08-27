@@ -1,0 +1,595 @@
+\chapter{Specifica dei casi di test}
+\label{cap:td-casi}
+
+I casi di test sono raggruppati per area funzionale. Per ciascuna area sono
+riportate le categorie individuate e i casi che ne derivano, con l'oracolo
+che stabilisce l'esito atteso. I casi dell'area Feedback sono già stati
+derivati per esteso in \cref{sec:td-esempio} e non sono ripetuti.
+
+\section{Autenticazione}
+\label{sec:td-tc-auth}
+
+\subsection{Categorie}
+
+\begin{longtable}{@{}L{3.2cm} L{4.2cm} L{5.6cm}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{email} & Formato &
+non conforme \id{[errore]}; conforme \id{[valido]} \\
+ & Esistenza &
+già registrata \id{[errore]}; libera \id{[valido]} \\
+\midrule
+\id{password} & Politica &
+priva di maiuscola, cifra o carattere speciale, oppure più corta di otto
+caratteri \id{[errore]}; conforme \id{[valido]} \\
+ & Corrispondenza &
+diversa da quella memorizzata \id{[errore]}; corrispondente \id{[valido]} \\
+\midrule
+\id{nome}, \id{cognome} & Lunghezza &
+fuori dall'intervallo 2--50 \id{[errore]}; nell'intervallo \id{[valido]} \\
+ & Formato &
+contiene cifre o simboli \id{[errore]}; solo lettere, apostrofi e trattini
+\id{[valido]} \\
+
+\end{longtable}
+
+\subsection{Casi di test}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_AU\_01} & Registrazione con dati conformi &
+L'utente è creato con ruolo \emph{utente}. \\
+
+\id{TC\_AU\_02} & Registrazione con password non conforme &
+\id{ValidationError}; nessun utente creato. \\
+
+\id{TC\_AU\_03} & Registrazione con email già registrata &
+\id{ConflictError}; nessun utente creato. \\
+
+\id{TC\_AU\_04} & Registrazione con dati conformi &
+Il valore memorizzato non coincide con la password, inizia con il prefisso
+di uno hash bcrypt e la verifica dell'hash sulla password originale ha
+successo. \\
+
+\id{TC\_AU\_05} & Accesso con credenziali corrette &
+Restituito l'utente corrispondente. \\
+
+\id{TC\_AU\_06} & Accesso con password errata &
+\id{UnauthorizedError}. \\
+
+\id{TC\_AU\_07} & Accesso con email inesistente e accesso con password errata &
+I due messaggi d'errore coincidono. Verifica \id{RNF\_F\_1} sotto il profilo
+dell'enumerazione degli account. \\
+
+\id{TC\_AU\_08} & Interrogazione su email registrata &
+Segnalata come non disponibile. \\
+
+\id{TC\_AU\_09} & Interrogazione su email libera &
+Segnalata come disponibile. \\
+
+\id{TC\_AU\_10} & Accesso riuscito, livello HTTP &
+La risposta reca un cookie con gli attributi \id{HttpOnly} e
+\id{SameSite=Lax}. \\
+
+\id{TC\_AU\_11} & Accesso riuscito, livello HTTP &
+Il corpo della risposta contiene esattamente i campi previsti dal DTO e non
+contiene la password né il suo hash. Verifica \id{RNF\_F\_1}. \\
+
+\id{TC\_AU\_12} & Registrazione riuscita, livello HTTP &
+Nessun cookie di sessione: la registrazione non autentica. \\
+
+\id{TC\_AU\_13} & Chiusura della sessione &
+La risposta invalida il cookie. \\
+
+\id{TC\_AU\_14} & Errore imprevisto durante l'accesso &
+La risposta è \id{500} e non contiene il messaggio dell'eccezione originale.
+Verifica \id{RNF\_A\_2}. \\
+
+\end{longtable}
+
+\section{Gestione account}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_AC\_01} & Aggiornamento di nome e cognome &
+I due campi sono modificati e persistiti. \\
+
+\id{TC\_AC\_02} & Aggiornamento del solo nome &
+Il cognome resta invariato: l'aggiornamento è parziale. \\
+
+\id{TC\_AC\_03} & Aggiornamento con email di un altro account &
+\id{ConflictError}; nessuna scrittura. \\
+
+\id{TC\_AC\_04} & Aggiornamento con la propria email invariata &
+Nessun controllo di unicità viene eseguito. \\
+
+\id{TC\_AC\_05} & Cambio password senza indicare quella attuale &
+\id{ValidationError}. \\
+
+\id{TC\_AC\_06} & Cambio password con password attuale errata &
+\id{UnauthorizedError}. \\
+
+\id{TC\_AC\_07} & Cambio password con nuova password non conforme &
+\id{ValidationError}. \\
+
+\id{TC\_AC\_08} & Cambio password valido &
+Il nuovo hash verifica la nuova password. \\
+
+\id{TC\_AC\_09} & Cancellazione di un account esistente &
+Operazione conclusa senza errore. \\
+
+\id{TC\_AC\_10} & Cancellazione di un account inesistente &
+\id{NotFoundError}. \\
+
+\end{longtable}
+
+\section{Gestione tutorial}
+
+\subsection{Categorie}
+
+\begin{longtable}{@{}L{3.2cm} L{4.2cm} L{5.6cm}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{titolo} & Lunghezza &
+$< 5$ \id{[errore]}; 5--100 \id{[valido]}; $> 100$ \id{[errore]} \\
+\id{testo} & Lunghezza &
+$< 20$ \id{[errore]}; 20--65535 \id{[valido]} \\
+ & Contenuto &
+con costrutti eseguibili; solo marcatori di formattazione \\
+\id{categoria} & Appartenenza &
+non fra quelle ammesse \id{[errore]}; ammessa \id{[valido]} \\
+\id{grafica} & Estensione &
+diversa da png, jpg, jpeg, webp \id{[errore]}; ammessa \id{[valido]} \\
+
+\end{longtable}
+
+\subsection{Casi di test}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_CT\_01} & Creazione con dati conformi & Il tutorial è persistito. \\
+\id{TC\_CT\_02} & Titolo più corto del minimo & \id{ValidationError}. \\
+\id{TC\_CT\_03} & Titolo più lungo del massimo & \id{ValidationError}. \\
+\id{TC\_CT\_04} & Testo più corto del minimo & \id{ValidationError}. \\
+\id{TC\_CT\_05} & Categoria non ammessa & \id{ValidationError}. \\
+\id{TC\_CT\_06} & Immagine con estensione non ammessa & \id{ValidationError}. \\
+
+\id{TC\_CT\_07} & Contenuto con marcatore \id{script} &
+Il testo memorizzato non contiene il marcatore, ma conserva la parte
+legittima. Verifica \id{RNF\_F\_5}. \\
+
+\id{TC\_CT\_08} & Contenuto con attributo di evento &
+L'attributo non compare nel testo memorizzato. Verifica \id{RNF\_F\_5}. \\
+
+\id{TC\_CT\_09} & Catalogo senza filtro &
+Restituito l'intero catalogo; nessun filtro applicato. \\
+
+\id{TC\_CT\_10} & Filtro con stringa vuota &
+Trattato come assenza di filtro. \\
+
+\id{TC\_CT\_11} & Filtro con categoria ammessa &
+La restrizione è passata al livello di persistenza, non applicata in memoria.
+Verifica \id{RNF\_P\_2}. \\
+
+\id{TC\_CT\_12} & Filtro con categoria inesistente & \id{ValidationError}. \\
+
+\id{TC\_CT\_13} & Ricerca con chiave composta da soli spazi &
+Elenco vuoto senza interrogare il database. \\
+
+\id{TC\_CT\_14} & Ricerca con chiave circondata da spazi &
+La chiave è ripulita prima dell'interrogazione. \\
+
+\id{TC\_CT\_15} & Aggiornamento di un tutorial esistente &
+I campi sono modificati e persistiti. \\
+
+\id{TC\_CT\_16} & Aggiornamento di un tutorial inesistente & \id{NotFoundError}. \\
+\id{TC\_CT\_17} & Ritiro di un tutorial esistente & Operazione conclusa. \\
+\id{TC\_CT\_18} & Ritiro di un tutorial inesistente & \id{NotFoundError}. \\
+
+\id{TC\_CT\_19} & Creazione senza immagine di copertina, livello HTTP &
+\id{400}; il servizio non è invocato. \\
+
+\id{TC\_CT\_20} & Aggiornamento con nuova copertina, livello HTTP &
+Il servizio riceve il percorso della copertina normalizzata. \\
+
+\id{TC\_CT\_21} & Aggiornamento senza copertina, livello HTTP &
+Il servizio riceve la copertina già presente: l'immagine non viene persa. \\
+
+\end{longtable}
+
+\section{Gestione quiz}
+
+\subsection{Categorie}
+
+\begin{longtable}{@{}L{3.2cm} L{4.2cm} L{5.6cm}@{}}
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Parametro} & \textbf{Categoria} & \textbf{Scelte} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{domande} & Cardinalità &
+nessuna \id{[errore]}; almeno una \id{[valido]} \\
+\id{domanda.testo} & Lunghezza &
+$< 2$ \id{[errore]}; 2--255 \id{[valido]}; $> 255$ \id{[errore]} \\
+\id{risposte} & Cardinalità &
+$< 2$ \id{[errore]}; 2--5 \id{[valido]} \\
+ & Risposte corrette &
+nessuna \id{[errore]}; esattamente una \id{[valido]}; più di una \id{[errore]} \\
+\id{risposteFornite} & Copertura &
+nessuna; parziale; completa \\
+ & Riferimenti &
+a domande del quiz; a domande estranee \\
+ & Ordine &
+uguale a quello delle domande; invertito \\
+Ambiente & Svolgimento precedente &
+assente; presente non superato; presente superato \\
+
+\end{longtable}
+
+\subsection{Casi di test — definizione del quiz}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_QZ\_01} & Quiz con una domanda conforme & Il quiz è persistito. \\
+\id{TC\_QZ\_02} & Tutorial inesistente & \id{NotFoundError}. \\
+\id{TC\_QZ\_03} & Tutorial con quiz già presente & \id{ConflictError}. \\
+\id{TC\_QZ\_04} & Elenco di domande vuoto & \id{ValidationError}. \\
+\id{TC\_QZ\_05} & Domanda più corta del minimo & \id{ValidationError}. \\
+\id{TC\_QZ\_06} & Domanda più lunga del massimo & \id{ValidationError}. \\
+\id{TC\_QZ\_07} & Risposta più corta del minimo & \id{ValidationError}. \\
+\id{TC\_QZ\_08} & Domanda con una sola opzione & \id{ValidationError}. \\
+\id{TC\_QZ\_09} & Domanda senza risposte corrette & \id{ValidationError}. \\
+\id{TC\_QZ\_10} & Domanda con due risposte corrette & \id{ValidationError}. \\
+\id{TC\_QZ\_11} & Ridefinizione di un quiz esistente &
+Le domande precedenti sono sostituite. \\
+\id{TC\_QZ\_12} & Ridefinizione di un quiz inesistente & \id{NotFoundError}. \\
+\id{TC\_QZ\_13} & Rimozione di un quiz esistente & Operazione conclusa. \\
+\id{TC\_QZ\_14} & Rimozione di un quiz inesistente & \id{NotFoundError}. \\
+
+\end{longtable}
+
+\subsection{Casi di test — svolgimento e correzione}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_QZ\_15} & Cinque risposte corrette su cinque &
+Esito positivo; cinque risposte esatte. \\
+
+\id{TC\_QZ\_16} & Tre risposte corrette su cinque &
+Esito negativo: $3/5 = 0{,}60 < 0{,}70$. \\
+
+\id{TC\_QZ\_17} & Sette risposte corrette su dieci &
+Esito positivo: $7/10 = 0{,}70$, esattamente il valore di soglia. Caso di
+frontiera. \\
+
+\id{TC\_QZ\_18} & Risposte corrette inviate in ordine invertito &
+Esito positivo: l'associazione avviene per identificativo e non per
+posizione. \\
+
+\id{TC\_QZ\_19} & Risposta riferita a una domanda di un altro quiz &
+Ignorata; nessuna risposta conteggiata come esatta. \\
+
+\id{TC\_QZ\_20} & Consegna senza alcuna risposta &
+Esito negativo, ma le soluzioni di tutte le domande sono restituite. \\
+
+\id{TC\_QZ\_21} & Consegna su quiz già superato, con esito peggiore &
+Lo svolgimento non viene sovrascritto. Verifica \id{RNF\_A\_4}. \\
+
+\id{TC\_QZ\_22} & Consegna su quiz non superato in precedenza &
+Il nuovo svolgimento è registrato. \\
+
+\id{TC\_QZ\_23} & Consegna che porta a tre quiz superati &
+Il contatore dell'utente è aggiornato al valore conteggiato dagli
+svolgimenti, non incrementato. Verifica \id{RNF\_A\_4}. \\
+
+\id{TC\_QZ\_24} & Consegna che non modifica il numero di quiz superati &
+Nessuna scrittura sul contatore. \\
+
+\id{TC\_QZ\_25} & Consegna che raggiunge la soglia di un obiettivo &
+L'obiettivo sbloccato è riportato nell'esito. \\
+
+\id{TC\_QZ\_26} & Quiz inesistente & \id{NotFoundError}. \\
+\id{TC\_QZ\_27} & Utente inesistente & \id{NotFoundError}. \\
+\id{TC\_QZ\_28} & Quiz privo di domande & \id{ValidationError}. \\
+
+\id{TC\_QZ\_29} & Lettura del quiz, livello HTTP &
+La rappresentazione non contiene alcun campo che distingua la risposta
+corretta, e ogni risposta espone solo identificativo e testo. Verifica
+\id{RNF\_F\_6}. \\
+
+\id{TC\_QZ\_30} & Consegna con risposte prive di identificativi, livello HTTP &
+\id{400}; il servizio non è invocato. \\
+
+\end{longtable}
+
+\section{Gestione obiettivi}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_OB\_01} & Zero quiz superati, soglia minima uno &
+Nessun obiettivo assegnato. \\
+
+\id{TC\_OB\_02} & Tre quiz superati, soglie 1, 3 e 5 &
+Assegnati i due obiettivi con soglia 1 e 3, non il terzo. \\
+
+\id{TC\_OB\_03} & Tre quiz superati, obiettivo con soglia 1 già conseguito &
+Assegnato solo l'obiettivo con soglia 3. \\
+
+\id{TC\_OB\_04} & Nessun nuovo traguardo raggiunto &
+Nessuna assegnazione: l'operazione è idempotente. \\
+
+\id{TC\_OB\_05} & Assegnazione dentro una transazione &
+La connessione transazionale è propagata al livello di persistenza. \\
+
+\id{TC\_OB\_06} & Utente con un conseguimento &
+Il badge restituito è abbinato al proprio obiettivo. \\
+
+\id{TC\_OB\_07} & Conseguimento il cui obiettivo è stato eliminato &
+Il conseguimento è omesso, senza errore. \\
+
+\id{TC\_OB\_08} & Creazione con dati conformi & L'obiettivo è persistito. \\
+\id{TC\_OB\_09} & Creazione con nome già usato & \id{ConflictError}. \\
+\id{TC\_OB\_10} & Nome più corto del minimo & \id{ValidationError}. \\
+\id{TC\_OB\_11} & Descrizione più corta del minimo & \id{ValidationError}. \\
+\id{TC\_OB\_12} & Soglia pari a zero & \id{ValidationError}. \\
+\id{TC\_OB\_13} & Soglia non intera & \id{ValidationError}. \\
+\id{TC\_OB\_14} & Badge assente & \id{ValidationError}. \\
+\id{TC\_OB\_15} & Aggiornamento di un obiettivo esistente & I campi sono modificati. \\
+\id{TC\_OB\_16} & Aggiornamento di un obiettivo inesistente & \id{NotFoundError}. \\
+\id{TC\_OB\_17} & Eliminazione di un obiettivo esistente & Operazione conclusa. \\
+\id{TC\_OB\_18} & Eliminazione di un obiettivo inesistente & \id{NotFoundError}. \\
+
+\end{longtable}
+
+\section{Controllo degli accessi}
+\label{sec:td-tc-accessi}
+
+Questa sezione verifica la matrice di controllo degli accessi del SDD. Il
+criterio di adeguatezza non è la copertura del codice ma la copertura della
+matrice: per ogni rotta protetta esiste un caso per ciascun livello di
+autorizzazione previsto.
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_AX\_01} & Ognuna delle sette rotte riservate agli amministratori,
+  chiamante anonimo & \id{401}. Verifica \id{RNF\_F\_2}. \\
+
+\id{TC\_AX\_02} & Le stesse rotte, chiamante autenticato non amministratore &
+  \id{403}. Verifica \id{RNF\_F\_3}. \\
+
+\id{TC\_AX\_03} & Le stesse rotte, chiamante amministratore &
+  Esito minore di \id{400}. \\
+
+\id{TC\_AX\_04} & Ognuna delle otto rotte riservate agli autenticati,
+  chiamante anonimo & \id{401}. \\
+
+\id{TC\_AX\_05} & Le stesse rotte, chiamante autenticato &
+  Esito minore di \id{400}. \\
+
+\id{TC\_AX\_06} & Ognuna delle sette rotte pubbliche, chiamante anonimo &
+  Esito minore di \id{400}. Verifica \id{RNF\_U\_4}. \\
+
+\id{TC\_AX\_07} & Rotta protetta con token non firmato dal server &
+  \id{401}: un token manomesso equivale a sessione assente. \\
+
+\id{TC\_AX\_08} & Rotta pubblica con token non valido &
+  \id{200}: la sessione illeggibile non impedisce l'accesso anonimo. \\
+
+\id{TC\_AX\_09} & Creazione di un feedback con un identificativo utente nel
+  corpo diverso da quello della sessione &
+  Il feedback è attribuito all'utente della sessione. Verifica
+  \id{RNF\_F\_4}. \\
+
+\id{TC\_AX\_10} & Consegna di un quiz con un identificativo utente nel corpo &
+  Lo svolgimento è attribuito all'utente della sessione. Verifica
+  \id{RNF\_F\_4}. \\
+
+\id{TC\_AX\_11} & Eliminazione di un feedback altrui da parte di un
+  amministratore & Il servizio è invocato con il privilegio di moderazione. \\
+
+\id{TC\_AX\_12} & La stessa richiesta da un utente ordinario &
+  Il servizio è invocato senza privilegio di moderazione, e nega
+  l'operazione. \\
+
+\end{longtable}
+
+\section{Infrastruttura}
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Condizione} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_IN\_01} & Ciascuna classe di errore applicativo &
+Espone lo stato HTTP e il codice previsti ed è istanza di \id{AppError}. \\
+
+\id{TC\_IN\_02} & Errori costruiti senza messaggio &
+Assumono il messaggio predefinito previsto. \\
+
+\id{TC\_IN\_03} & \id{ValidationError} con e senza dettagli &
+I dettagli sono conservati quando forniti, assenti altrimenti. \\
+
+\id{TC\_IN\_04} & Nome del file con risalita \id{../} &
+\id{ValidationError}. Verifica \id{RNF\_F\_7}. \\
+
+\id{TC\_IN\_05} & Nome del file con risalita in notazione Windows &
+\id{ValidationError}. \\
+
+\id{TC\_IN\_06} & Percorso assoluto & \id{ValidationError}. \\
+\id{TC\_IN\_07} & Nome contenente un separatore di percorso & \id{ValidationError}. \\
+\id{TC\_IN\_08} & Nome che inizia con un punto & \id{ValidationError}. \\
+
+\id{TC\_IN\_09} & Nome semplice di un file inesistente &
+Esito negativo senza eccezione: l'eliminazione è idempotente. \\
+
+\id{TC\_IN\_10} & Nome semplice di un file esistente &
+Il file è rimosso. \\
+
+\id{TC\_IN\_11} & Tentativo di risalita verso un file esistente fuori dalla
+  cartella consentita &
+\id{ValidationError} e il file non viene toccato. Verifica \id{RNF\_F\_7}. \\
+
+\id{TC\_IN\_12} & Costruzione dell'applicazione senza dipendenze esplicite &
+L'applicazione risponde e tutte le rotte previste risultano montate. \\
+
+\id{TC\_IN\_13} & Richiesta a una rotta inesistente &
+\id{404} con il codice d'errore previsto. \\
+
+\id{TC\_IN\_14} & Intestazioni CORS &
+Dichiarano l'origine configurata e ammettono le credenziali. \\
+
+\end{longtable}
+
+\section{Casi di test di sistema}
+\label{sec:td-sistema}
+
+I casi che seguono sono eseguiti manualmente su un'istanza completa, con
+database creato dagli script del progetto. Coprono ciò che la verifica
+automatica non raggiunge: le interrogazioni SQL, i vincoli di integrità e i
+trigger.
+
+\begin{longtable}{@{}l L{5.0cm} L{7.4cm}@{}}
+\toprule
+\textbf{Caso} & \textbf{Procedura} & \textbf{Oracolo} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Caso} & \textbf{Procedura} & \textbf{Oracolo} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{TC\_SY\_01} & Creazione dello schema ed esecuzione dei dati di esempio &
+Tutte le tabelle sono popolate; la valutazione media dei tutorial è
+calcolata dai trigger. \\
+
+\id{TC\_SY\_02} & Accesso con le credenziali di esempio &
+Risposta priva di credenziali; cookie con attributo \id{HttpOnly}. \\
+
+\id{TC\_SY\_03} & Consegna di un quiz con risposte corrette, ripetuta su tre
+  tutorial &
+I badge previsti sono assegnati alle soglie corrette; il contatore dei quiz
+superati corrisponde. \\
+
+\id{TC\_SY\_04} & Consegna con risposte inviate in ordine invertito &
+Esito positivo: verifica dell'associazione per identificativo su dati reali. \\
+
+\id{TC\_SY\_05} & Pubblicazione di un tutorial con contenuto contenente
+  costrutti eseguibili &
+Il contenuto memorizzato ne è privo. \\
+
+\id{TC\_SY\_06} & Inserimento e modifica di un feedback &
+La valutazione media del tutorial cambia di conseguenza. \\
+
+\id{TC\_SY\_07} & Eliminazione di un tutorial con quiz e feedback &
+Quiz, domande, risposte e feedback associati non esistono più. \\
+
+\id{TC\_SY\_08} & Richiesta di eliminazione di un tutorial da un utente non
+  amministratore & \id{403}; il tutorial resta nel catalogo. \\
+
+\id{TC\_SY\_09} & Tentativo di eliminazione di un file tramite risalita di
+  percorso & \id{400}; il file bersaglio esiste ancora. \\
+
+\end{longtable}

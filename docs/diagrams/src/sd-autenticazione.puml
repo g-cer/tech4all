@@ -1,0 +1,51 @@
+@startuml
+!include _stile.puml
+
+title Autenticazione e successiva richiesta protetta
+
+actor Utente as U
+participant "Browser" as B
+participant ":AuthRouter" as R
+participant ":AutenticazioneService" as S
+participant ":UtenteDao" as D
+participant "requireAdmin" as MW
+participant ":TutorialRouter" as TR
+
+group Autenticazione
+  U -> B : credenziali
+  B -> R : POST /auth/login
+  R -> R : validazione della forma
+  R -> S : login(email, password)
+  S -> D : findByEmail(email)
+  D --> S : Utente | null
+  S -> S : bcrypt.compare(password, hash)
+  alt credenziali non valide
+    S --> R : UnauthorizedError
+    R --> B : 401 (stesso messaggio\nper email inesistente\ne password errata)
+  else credenziali valide
+    S --> R : Utente
+    R -> R : firmaToken(utente)
+    R --> B : 200 + Set-Cookie httpOnly
+    note right of B
+      Il token non è leggibile dal
+      JavaScript di pagina: un XSS
+      non può esfiltrarlo.
+    end note
+  end
+end
+
+group Richiesta protetta
+  U -> B : elimina un tutorial
+  B -> MW : DELETE /tutorials/7\n(cookie allegato dal browser)
+  MW -> MW : verifica la firma\ned estrae identità e ruolo
+  alt token assente o non valido
+    MW --> B : 401
+  else ruolo non amministratore
+    MW --> B : 403
+  else autorizzato
+    MW -> TR : prosegue
+    TR --> B : 204
+  end
+end
+
+@enduml

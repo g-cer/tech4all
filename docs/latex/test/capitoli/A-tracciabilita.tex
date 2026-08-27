@@ -1,0 +1,189 @@
+\chapter{Matrice di tracciabilità}
+\label{cap:td-app-tracciabilita}
+
+Questa appendice chiude la catena di tracciabilità del progetto. Il RAD lega
+requisiti, casi d'uso e scenari; il SDD lega i requisiti non funzionali agli
+obiettivi di progettazione e ai meccanismi che li realizzano; qui ogni
+requisito è legato ai casi di test che lo verificano.
+
+Un requisito privo di casi di test associati sarebbe un requisito non
+verificato: le tabelle che seguono servono anche a rendere immediatamente
+visibile un'eventuale lacuna.
+
+\section{Requisiti funzionali}
+
+\begin{longtable}{@{}l L{6.8cm} L{4.8cm}@{}}
+\toprule
+\textbf{Requisito} & \textbf{Classe o rotta verificata} & \textbf{Casi di test} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requisito} & \textbf{Classe o rotta verificata} & \textbf{Casi di test} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RF\_AU\_1}  & \id{AutenticazioneService.registra} &
+  \id{TC\_AU\_01}--\id{TC\_AU\_04}, \id{TC\_AU\_12} \\
+\id{RF\_AU\_2}  & \id{AutenticazioneService.login} &
+  \id{TC\_AU\_05}--\id{TC\_AU\_07}, \id{TC\_AU\_10} \\
+\id{RF\_AU\_3}  & \id{POST /auth/logout} & \id{TC\_AU\_13} \\
+\id{RF\_AU\_4}  & \id{AccountService.getUtente} & \id{TC\_AU\_11}, \id{TC\_AX\_04} \\
+\id{RF\_AU\_5}  & \id{AutenticazioneService.emailEsiste} &
+  \id{TC\_AU\_08}, \id{TC\_AU\_09} \\
+\id{RF\_AU\_6}  & \id{AccountService.aggiornaProfilo} &
+  \id{TC\_AC\_01}--\id{TC\_AC\_04} \\
+\id{RF\_AU\_7}  & \id{AccountService.aggiornaProfilo} &
+  \id{TC\_AC\_05}--\id{TC\_AC\_08} \\
+\id{RF\_AU\_8}  & \id{AccountService.eliminaUtente} &
+  \id{TC\_AC\_09}, \id{TC\_AC\_10} \\
+\id{RF\_AU\_9}  & \id{GET /accounts} & \id{TC\_AX\_01}--\id{TC\_AX\_03} \\
+\id{RF\_AU\_10} & \id{DELETE /accounts/:id} & \id{TC\_AX\_01}--\id{TC\_AX\_03} \\
+\midrule
+
+\id{RF\_CT\_1}  & \id{TutorialService.getTutorials} & \id{TC\_CT\_09}, \id{TC\_AX\_06} \\
+\id{RF\_CT\_2}  & \id{TutorialService.getTutorials} &
+  \id{TC\_CT\_10}--\id{TC\_CT\_12} \\
+\id{RF\_CT\_3}  & \id{TutorialService.cercaTutorial} &
+  \id{TC\_CT\_13}, \id{TC\_CT\_14} \\
+\id{RF\_CT\_4}  & \id{TutorialService.getTutorial} & \id{TC\_AX\_06} \\
+\id{RF\_CT\_5}  & \id{GET /tutorials/categorie} & \id{TC\_AX\_06} \\
+\id{RF\_CT\_6}  & \id{TutorialService.creaTutorial} &
+  \id{TC\_CT\_01}--\id{TC\_CT\_08}, \id{TC\_CT\_19} \\
+\id{RF\_CT\_7}  & \id{TutorialService.aggiornaTutorial} &
+  \id{TC\_CT\_15}, \id{TC\_CT\_16}, \id{TC\_CT\_20}, \id{TC\_CT\_21} \\
+\id{RF\_CT\_8}  & \id{TutorialService.eliminaTutorial} &
+  \id{TC\_CT\_17}, \id{TC\_CT\_18}, \id{TC\_SY\_07} \\
+\id{RF\_CT\_9}  & \id{POST /tutorials/immagini} & \id{TC\_IN\_04}--\id{TC\_IN\_11} \\
+\id{RF\_CT\_10} & \id{eliminaImmagineContenuto} & \id{TC\_IN\_04}--\id{TC\_IN\_11} \\
+\midrule
+
+\id{RF\_QZ\_1}  & \id{toQuizDTO} & \id{TC\_QZ\_29}, \id{TC\_AX\_06} \\
+\id{RF\_QZ\_2}  & \id{QuizService.eseguiQuiz} &
+  \id{TC\_QZ\_15}--\id{TC\_QZ\_28}, \id{TC\_QZ\_30} \\
+\id{RF\_QZ\_3}  & \id{QuizService.creaQuiz} & \id{TC\_QZ\_01}--\id{TC\_QZ\_10} \\
+\id{RF\_QZ\_4}  & \id{QuizService.aggiornaQuiz} & \id{TC\_QZ\_11}, \id{TC\_QZ\_12} \\
+\id{RF\_QZ\_5}  & \id{QuizService.eliminaQuiz} & \id{TC\_QZ\_13}, \id{TC\_QZ\_14} \\
+\midrule
+
+\id{RF\_FB\_1}  & \id{FeedbackService.getFeedbackTutorial} & \id{TC\_AX\_06} \\
+\id{RF\_FB\_2}  & \id{FeedbackService.getFeedbackUtente} & \id{TC\_AX\_04} \\
+\id{RF\_FB\_3}  & \id{FeedbackService.creaFeedback} &
+  \id{TC\_FB\_01}--\id{TC\_FB\_08} \\
+\id{RF\_FB\_4}  & \id{FeedbackService.aggiornaFeedback} & \id{TC\_FB\_01}, \id{TC\_FB\_08} \\
+\id{RF\_FB\_5}  & \id{FeedbackService.eliminaFeedback} & \id{TC\_AX\_12} \\
+\id{RF\_FB\_6}  & \id{FeedbackService.eliminaFeedback} & \id{TC\_AX\_11} \\
+\midrule
+
+\id{RF\_OB\_1}  & \id{ObiettivoService.getObiettivi} & \id{TC\_AX\_06} \\
+\id{RF\_OB\_2}  & \id{ObiettivoService.getBadgeUtente} &
+  \id{TC\_OB\_06}, \id{TC\_OB\_07} \\
+\id{RF\_OB\_3}  & \id{ObiettivoService.valutaConseguimenti} &
+  \id{TC\_OB\_01}--\id{TC\_OB\_05}, \id{TC\_QZ\_25} \\
+\id{RF\_OB\_4}  & \id{ObiettivoService.creaObiettivo} &
+  \id{TC\_OB\_08}--\id{TC\_OB\_14} \\
+\id{RF\_OB\_5}  & \id{ObiettivoService.aggiornaObiettivo} &
+  \id{TC\_OB\_15}, \id{TC\_OB\_16} \\
+\id{RF\_OB\_6}  & \id{ObiettivoService.eliminaObiettivo} &
+  \id{TC\_OB\_17}, \id{TC\_OB\_18} \\
+
+\end{longtable}
+
+\section{Requisiti non funzionali}
+
+\begin{longtable}{@{}l L{6.8cm} L{4.8cm}@{}}
+\toprule
+\textbf{Requisito} & \textbf{Criterio di accettazione verificato} & \textbf{Casi di test} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Requisito} & \textbf{Criterio di accettazione verificato} & \textbf{Casi di test} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\id{RNF\_F\_1} &
+La password non compare in alcuna risposta ed è memorizzata come hash. &
+\id{TC\_AU\_04}, \id{TC\_AU\_07}, \id{TC\_AU\_11} \\
+
+\id{RNF\_F\_2} &
+Le richieste di modifica prive di sessione ricevono \id{401}. &
+\id{TC\_AX\_01}, \id{TC\_AX\_04}, \id{TC\_AX\_07} \\
+
+\id{RNF\_F\_3} &
+Le stesse richieste, da utente non amministratore, ricevono \id{403}. &
+\id{TC\_AX\_02}, \id{TC\_SY\_08} \\
+
+\id{RNF\_F\_4} &
+Un identificativo utente nel corpo della richiesta viene ignorato. &
+\id{TC\_AX\_09}, \id{TC\_AX\_10} \\
+
+\id{RNF\_F\_5} &
+Il contenuto memorizzato è privo di costrutti eseguibili. &
+\id{TC\_CT\_07}, \id{TC\_CT\_08}, \id{TC\_SY\_05} \\
+
+\id{RNF\_F\_6} &
+La rappresentazione del quiz non distingue la risposta corretta. &
+\id{TC\_QZ\_29} \\
+
+\id{RNF\_F\_7} &
+Un nome di file con separatori o risalite è rifiutato. &
+\id{TC\_IN\_04}--\id{TC\_IN\_11}, \id{TC\_SY\_09} \\
+\midrule
+
+\id{RNF\_U\_2} &
+Le risposte di validazione elencano i campi non conformi. &
+\id{TC\_AU\_02}, \id{TC\_AU\_03} \\
+
+\id{RNF\_U\_4} &
+Le rotte di consultazione rispondono a un chiamante anonimo. &
+\id{TC\_AX\_06}, \id{TC\_AX\_08} \\
+\midrule
+
+\id{RNF\_A\_1} &
+Le operazioni composite sono atomiche. &
+\id{TC\_OB\_05}, \id{TC\_SY\_03} \\
+
+\id{RNF\_A\_2} &
+La risposta \id{500} non contiene dettagli interni. &
+\id{TC\_AU\_14} \\
+
+\id{RNF\_A\_3} &
+La copertura non scende sotto le soglie configurate. &
+\cref{sec:td-copertura} \\
+
+\id{RNF\_A\_4} &
+Ripetere un quiz superato non altera il conteggio. &
+\id{TC\_QZ\_21}, \id{TC\_QZ\_23}, \id{TC\_QZ\_24} \\
+\midrule
+
+\id{RNF\_P\_1} &
+L'aggregato quiz è letto con una sola interrogazione. &
+\id{TC\_SY\_03} \\
+
+\id{RNF\_P\_2} &
+Filtro e ricerca sono eseguiti dalla base di dati. &
+\id{TC\_CT\_11}, \id{TC\_CT\_13} \\
+\midrule
+
+\id{RNF\_S\_2} &
+I vincoli di dominio hanno un'unica definizione. &
+\id{TC\_QZ\_17} (soglia), \id{TC\_FB\_06} (lunghezza) \\
+
+\id{RNF\_S\_3} &
+Analisi statica, tipi, test e compilazione a ogni integrazione. &
+\cref{cap:td-strategia} \\
+
+\end{longtable}
+
+\begin{nota}
+\textbf{Requisiti non coperti da casi di test automatici.} \id{RNF\_U\_1}
+(linguaggio non tecnico) e \id{RNF\_U\_3} (conferma delle operazioni
+irreversibili) riguardano l'interfaccia e sono verificati per ispezione;
+\id{RNF\_S\_1} (uniformità dei sottosistemi) è una proprietà strutturale
+verificabile per ispezione del codice. Sono gli unici tre requisiti privi di
+un caso di test eseguibile, e la ragione è che nessuno dei tre è esprimibile
+come asserzione su un comportamento osservabile.
+\end{nota}

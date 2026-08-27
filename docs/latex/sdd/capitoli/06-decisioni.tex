@@ -1,0 +1,155 @@
+\chapter{Decisioni di progetto e razionale}
+\label{cap:sdd-decisioni}
+
+Le decisioni che seguono hanno determinato la forma del sistema. Per ciascuna
+sono riportati il problema, la scelta, le alternative considerate e le
+conseguenze accettate. Sono raccolte qui perché una decisione motivata è
+riesaminabile, mentre una decisione implicita si può solo subire.
+
+\section{DP\_1 — La sessione è un token firmato in un cookie httpOnly}
+
+\textbf{Problema.} Riconoscere l'utente fra una richiesta e l'altra
+proteggendo il meccanismo di riconoscimento.
+
+\textbf{Decisione.} Un JWT firmato dal server, con scadenza breve, depositato
+in un cookie \id{httpOnly}, \id{SameSite=Lax} e \id{Secure} in produzione.
+
+\textbf{Alternative.} Il token in un'intestazione \id{Authorization},
+conservato dal client, sarebbe più comodo da provare con strumenti da riga di
+comando, ma richiede che il JavaScript di pagina possa leggerlo: una
+vulnerabilità di scripting basterebbe a rubarlo. Le sessioni sul server
+renderebbero la revoca immediata, al costo di uno stato condiviso e di un
+archivio di sessioni, contro \id{DG\_6}.
+
+\textbf{Conseguenze.} Il server resta privo di stato. In cambio, un token non
+può essere revocato prima della scadenza: è il motivo per cui la scadenza è
+breve. Il cookie viaggia cross-origin, quindi il CORS deve dichiarare
+un'origine esplicita e ammettere le credenziali.
+
+\section{DP\_2 — La correzione del quiz avviene solo sul server}
+
+\textbf{Problema.} Impedire che l'esito di una verifica possa essere
+falsificato.
+
+\textbf{Decisione.} La rappresentazione del quiz inviata al client non
+contiene l'indicazione della risposta corretta. Il client raccoglie le scelte
+e le consegna; il server corregge e restituisce esito e soluzioni.
+
+\textbf{Alternative.} Correggere nel browser eviterebbe un giro di rete e
+darebbe un riscontro istantaneo, ma richiederebbe di trasmettere le
+soluzioni: chiunque potrebbe leggerle prima di rispondere.
+
+\textbf{Conseguenze.} L'invariante è garantito dalla struttura del dato, non
+dalla disciplina di chi scrive il codice: la funzione di serializzazione non
+espone il campo, quindi non c'è modo di dimenticarsene. Il costo è una
+richiesta HTTP al momento della consegna.
+
+\section{DP\_3 — Le risposte sono associate per identificativo}
+
+\textbf{Problema.} Correlare le scelte dell'utente alle domande del quiz.
+
+\textbf{Decisione.} Il client invia coppie
+\id{(domandaId, rispostaId)}; il server le indicizza per identificativo di
+domanda.
+
+\textbf{Alternative.} Un elenco ordinato di identificativi di risposta,
+correlato per posizione all'ordine delle domande sul server, sarebbe più
+compatto. Introdurrebbe però un accoppiamento implicito fra l'ordine di
+presentazione nell'interfaccia e quello di memorizzazione: basterebbe
+mostrare le domande in un ordine diverso — per esempio mescolandole a ogni
+tentativo — perché la correzione risultasse errata senza alcun segnale.
+
+\textbf{Conseguenze.} L'ordine di presentazione diventa una libera scelta
+dell'interfaccia. Una risposta riferita a una domanda che non appartiene al
+quiz viene semplicemente ignorata.
+
+\section{DP\_4 — Il conteggio dei quiz superati è derivato}
+
+\textbf{Problema.} Sapere quanti quiz un utente ha superato, dato che il
+valore determina l'assegnazione dei badge.
+
+\textbf{Decisione.} Il valore è ricalcolato contando gli svolgimenti con
+esito positivo, e poi memorizzato nella colonna \file{utente.quiz\_superati}
+come denormalizzazione di comodo.
+
+\textbf{Alternative.} Incrementare un contatore a ogni superamento è più
+economico, ma lega il valore alla storia delle operazioni anziché allo stato
+del sistema: ripetere un quiz già superato lo incrementerebbe di nuovo, e i
+badge finirebbero assegnati per traguardi mai raggiunti.
+
+\textbf{Conseguenze.} Un'interrogazione di conteggio in più a ogni consegna,
+in cambio di un valore che non può divergere dalla realtà. La colonna
+memorizzata resta comoda per le letture e viene riscritta solo quando il
+conteggio effettivo differisce.
+
+\section{DP\_5 — La valutazione media è mantenuta dal database}
+
+\textbf{Problema.} Mostrare nel catalogo la media dei feedback di ogni
+tutorial senza calcolarla a ogni lettura.
+
+\textbf{Decisione.} Tre trigger su \file{feedback} ricalcolano
+\file{tutorial.valutazione} a ogni inserimento, modifica o cancellazione.
+
+\textbf{Alternative.} Calcolarla nel servizio richiederebbe di ricordarsene
+in tre punti diversi, e due scritture concorrenti potrebbero lasciare un
+valore errato. Calcolarla a ogni lettura del catalogo costringerebbe a un
+raggruppamento su tutta la tabella dei feedback.
+
+\textbf{Conseguenze.} Il valore è coerente per costruzione, anche di fronte a
+scritture concorrenti. In cambio, una parte del comportamento del sistema
+vive nel database, non è visibile nel codice applicativo e non è coperta
+dalla suite di test: è dichiarata qui e nel Test Document.
+
+\section{DP\_6 — Quiz, domande e risposte formano un solo aggregato}
+
+\textbf{Problema.} Stabilire quali entità abbiano un DAO proprio.
+
+\textbf{Decisione.} Un unico \id{QuizDao} governa quiz, domande e risposte.
+Non esistono DAO per domanda e risposta.
+
+\textbf{Alternative.} Un DAO per tabella è la scelta più immediata, ma
+introduce tre problemi. La lettura di un quiz richiederebbe
+un'interrogazione per ogni domanda e una per ogni risposta. Le domande
+potrebbero essere scritte senza il loro quiz, in stati che il dominio non
+ammette. E i DAO di domanda e risposta sarebbero troppo sottili per essere
+verificati in modo significativo da soli, pur restando il punto in cui è più
+facile sbagliare l'ordine di un parametro.
+
+\textbf{Conseguenze.} La lettura di un quiz è una sola interrogazione
+(\id{RNF\_P\_1}). L'aggregato è sempre coerente: non esiste un modo di
+scrivere una domanda senza il suo quiz.
+
+\section{DP\_7 — Il client non condivide codice con il server}
+
+\textbf{Problema.} Evitare che i due lati divergano sui tipi scambiati.
+
+\textbf{Decisione.} Il client ridichiara in \file{src/types} le strutture che
+riceve dall'API. Nessun import attraversa il confine.
+
+\textbf{Alternative.} Importare le entità del server direttamente nel client
+eviterebbe la duplicazione ed è tecnicamente possibile con una regola di
+compilazione dedicata. Il client dipenderebbe però da classi che contengono
+logica di dominio e accesso ai dati, e non potrebbe essere costruito senza il
+server.
+
+\textbf{Conseguenze.} I due progetti si compilano e si distribuiscono in modo
+indipendente. Il prezzo è una duplicazione delle definizioni di trasporto,
+accettata perché DTO ed entità hanno ragioni di esistere diverse e non devono
+cambiare insieme.
+
+\section{DP\_8 — L'assistente conversazionale è un componente esterno}
+
+\textbf{Problema.} Offrire assistenza immediata a un pubblico inesperto.
+
+\textbf{Decisione.} Il sistema può incorporare un widget di dialogo fornito
+da terzi, abilitato solo se configurato. Non esiste logica conversazionale
+propria.
+
+\textbf{Alternative.} Realizzare un assistente interno richiederebbe
+competenze, infrastruttura e dati di addestramento estranei agli obiettivi
+del progetto; un assistente inaffidabile, su questo pubblico, sarebbe
+dannoso più che utile.
+
+\textbf{Conseguenze.} La funzionalità è dichiarata fuori perimetro nel RAD.
+L'applicazione funziona identicamente senza il widget, e nessun dato
+dell'utente gli viene trasmesso dal sistema.

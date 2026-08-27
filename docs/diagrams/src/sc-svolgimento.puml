@@ -1,0 +1,38 @@
+@startuml
+!include _stile.puml
+
+title SC_01 — Stati dello svolgimento di un quiz da parte di un utente
+
+[*] --> NonTentato : il quiz è pubblicato
+
+state NonTentato : nessuno svolgimento\nregistrato per la coppia\n(utente, quiz)
+
+state "In compilazione" as InCompilazione
+InCompilazione : l'utente ha aperto il quiz\ne sta selezionando le risposte
+
+state NonSuperato : svolgimento registrato\ncon esito negativo
+state Superato : svolgimento registrato\ncon esito positivo
+
+NonTentato --> InCompilazione : apri quiz
+NonSuperato --> InCompilazione : riprova
+
+InCompilazione --> InCompilazione : seleziona risposta
+InCompilazione --> NonTentato : abbandona\n(nessuna consegna)
+
+InCompilazione --> Valutazione : consegna\n[tutte le domande\nhanno una risposta]
+
+state Valutazione <<choice>>
+Valutazione --> Superato : [esatte / totale >= 0,7]
+Valutazione --> NonSuperato : [esatte / totale < 0,7]
+
+Superato --> InCompilazione : riprova
+Superato --> Superato : consegna\n/ l'esito resta positivo
+
+note right of Superato
+  Stato assorbente rispetto all'esito:
+  un tentativo successivo può essere
+  svolto, ma non declassa il risultato
+  né ricalcola i quiz superati al ribasso.
+end note
+
+@enduml

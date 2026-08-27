@@ -1,0 +1,100 @@
+@startuml
+!include _stile.puml
+
+title Modello a oggetti dell'analisi — oggetti entity
+
+hide empty members
+
+enum Ruolo {
+  utente
+  admin
+}
+
+enum Categoria {
+  Internet
+  SocialMedia
+  Tecnologia
+  Sicurezza
+}
+
+class Utente {
+  nome
+  cognome
+  email
+  quizSuperati
+}
+
+class Tutorial {
+  titolo
+  testo
+  copertina
+  valutazioneMedia
+}
+
+class Quiz {
+}
+
+class Domanda {
+  testo
+}
+
+class Risposta {
+  testo
+  corretta
+}
+
+class Obiettivo {
+  nome
+  descrizione
+  badge
+  quizDaSuperare
+}
+
+' --- Classi di associazione -------------------------------------------------
+' Feedback, Svolgimento e Conseguimento non esistono indipendentemente dalla
+' coppia di oggetti che collegano: sono modellati come classi di associazione.
+
+class Feedback {
+  valutazione
+  commento
+  dataCreazione
+}
+
+class Svolgimento {
+  esito
+  risposteEsatte
+  dataConseguimento
+}
+
+class Conseguimento {
+  dataConseguimento
+}
+
+' --- Relazioni --------------------------------------------------------------
+Utente "1" -- "0..*" Tutorial
+(Utente, Tutorial) .. Feedback
+
+Utente "1" -- "0..*" Quiz
+(Utente, Quiz) .. Svolgimento
+
+Utente "1" -- "0..*" Obiettivo
+(Utente, Obiettivo) .. Conseguimento
+
+Tutorial "1" *-- "0..1" Quiz : verifica >
+Quiz "1" *-- "1..*" Domanda
+Domanda "1" *-- "2..5" Risposta
+
+Utente --> Ruolo
+Tutorial --> Categoria
+
+note right of Risposta
+  Esattamente una delle risposte
+  di una domanda è corretta.
+end note
+
+note bottom of Tutorial
+  `valutazioneMedia` è derivata
+  dai feedback ricevuti.
+end note
+
+@enduml

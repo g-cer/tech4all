@@ -1,0 +1,69 @@
+\chapter{Architettura corrente}
+\label{cap:sdd-architettura-corrente}
+
+Tech4All non sostituisce alcun sistema software esistente. La prassi che
+intende migliorare, descritta nel RAD, non è mediata da alcun sistema
+informatico: è un insieme di procedure umane — la delega a un conoscente, la
+ricerca autonoma in rete, il ricorso a un servizio di assistenza — che non ha
+un'architettura da documentare.
+
+L'assenza di un antecedente ha conseguenze precise sulla progettazione, ed è
+per questo che il capitolo esiste anziché essere omesso.
+
+\section{Vincoli che il sistema non eredita}
+
+\begin{longtable}{@{}L{4.6cm} L{9.8cm}@{}}
+\toprule
+\textbf{Vincolo assente} & \textbf{Conseguenza sulla progettazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Vincolo assente} & \textbf{Conseguenza sulla progettazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Interfacce da preservare &
+Nessun formato di scambio, protocollo o schema è imposto dall'esterno. La
+decomposizione in sottosistemi e la forma dell'interfaccia HTTP possono essere
+scelte in funzione del dominio e non della compatibilità. \\
+
+Dati da migrare &
+Non esiste una base di dati preesistente. Lo schema può essere normalizzato
+liberamente e gli invarianti possono essere affidati al DBMS senza dover
+accogliere dati che li violano. \\
+
+Tecnologie imposte &
+Nessuna piattaforma è vincolata da scelte pregresse. I vincoli sulla
+tecnologia sono solo quelli di progetto (\id{V\_1}--\id{V\_5} del RAD). \\
+
+Utenti da riconvertire &
+Non esistono abitudini d'uso consolidate su un sistema precedente. L'unico
+riferimento è la competenza digitale del pubblico, che è bassa per
+definizione: è questo, e non la continuità con un sistema esistente, a
+guidare le scelte di interazione. \\
+
+\end{longtable}
+
+\section{Vincoli che il sistema eredita comunque}
+
+L'assenza di un sistema precedente non significa assenza di vincoli. Tre
+condizioni dell'ambiente sono date e la progettazione deve accoglierle.
+
+\begin{description}[leftmargin=1.4cm,style=nextline]
+  \item[Il browser] è l'unico canale d'accesso previsto (\id{V\_1}). Il
+    sistema non può presupporre installazioni sul dispositivo dell'utente né
+    capacità di calcolo particolari, e deve funzionare su dispositivi datati.
+  \item[La connessione] è intermittente e di qualità variabile. Il sistema è
+    progettato perché ogni operazione sia autonoma: nessuna funzionalità
+    richiede una sessione di lavoro continua o il completamento di più
+    passaggi in sequenza entro un limite di tempo.
+  \item[La competenza dell'utente] è il vincolo più stringente. Determina la
+    scelta di rendere pubblica la consultazione (\id{OB\_1}), l'obbligo di
+    messaggi d'errore comprensibili (\id{RNF\_U\_2}) e la richiesta di
+    conferma sulle operazioni irreversibili (\id{RNF\_U\_3}).
+\end{description}
+
+Il capitolo seguente descrive l'architettura proposta a partire da queste
+condizioni.

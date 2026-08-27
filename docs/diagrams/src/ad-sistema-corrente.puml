@@ -1,0 +1,48 @@
+@startuml
+!include _stile.puml
+
+title Acquisizione di una competenza digitale senza il sistema
+
+|Persona inesperta|
+start
+:Incontra un ostacolo\nnell'uso di un dispositivo;
+:Cerca aiuto;
+
+split
+  |Persona inesperta|
+  :Chiede a un familiare\no a un conoscente;
+  if (Il contatto è disponibile\ne competente?) then (sì)
+    |Familiare o conoscente|
+    :Risolve al posto della persona;
+    note right
+      L'ostacolo è superato,
+      ma la competenza non
+      viene acquisita.
+    end note
+  else (no)
+    |Persona inesperta|
+    :Rinuncia o riprova\npiù tardi;
+  endif
+split again
+  |Persona inesperta|
+  :Cerca in rete;
+  if (Trova materiale\ncomprensibile?) then (sì)
+    :Legge un contenuto\nnon strutturato;
+    :Non ha modo di verificare\nse ha davvero capito;
+  else (no)
+    :Si scoraggia;
+  endif
+split again
+  |Persona inesperta|
+  :Si rivolge a un\nservizio a pagamento;
+  |Operatore|
+  :Esegue l'operazione\nrichiesta;
+  |Persona inesperta|
+  :Sostiene un costo\nsenza imparare;
+endsplit
+
+|Persona inesperta|
+:L'ostacolo si ripresenta\nalla prossima occasione;
+stop
+
+@enduml

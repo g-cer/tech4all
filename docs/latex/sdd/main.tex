@@ -1,0 +1,44 @@
+% =============================================================================
+%  Tech4All — System Design Document
+%
+%  Compilazione:  make sdd     (dalla cartella docs/)
+%                 latexmk -pdf main.tex   (da questa cartella)
+% =============================================================================
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage{../shared/tech4all}
+\addbibresource{../shared/riferimenti.bib}
+
+\newcommand{\titoloDocumento}{System Design Document}
+\newcommand{\siglaDocumento}{SDD}
+\newcommand{\versioneDocumento}{1.0}
+\impostaNomeDocumento{SDD}
+
+\hypersetup{
+  pdftitle={Tech4All — System Design Document},
+  pdfsubject={Architettura e progettazione degli oggetti della piattaforma Tech4All}
+}
+
+\begin{document}
+
+\input{../shared/frontespizio}
+
+\pagenumbering{roman}
+\tableofcontents
+\cleardoublepage
+\pagenumbering{arabic}
+
+\include{capitoli/01-introduzione}
+\include{capitoli/02-architettura-corrente}
+\include{capitoli/03-architettura-proposta}
+\include{capitoli/04-servizi}
+\include{capitoli/05-object-design}
+\include{capitoli/06-decisioni}
+\input{../shared/glossario}
+
+\appendix
+\include{capitoli/A-tracciabilita}
+
+\printbibliography[heading=bibintoc,title={Riferimenti bibliografici}]
+
+\end{document}

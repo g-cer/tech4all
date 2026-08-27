@@ -1,0 +1,34 @@
+@startuml
+!include _stile.puml
+
+title Mappatura hardware/software
+
+node "Dispositivo dell'utente" as Client {
+  component "Browser" as Browser {
+    artifact "Applicazione\nNext.js" as App
+  }
+}
+
+node "Nodo applicativo" as Server {
+  component "Node.js" as Node {
+    artifact "Server\nExpress" as Express
+  }
+  folder "uploads/" as Uploads
+}
+
+node "Nodo dati" as Dati {
+  database "MySQL 8" as MySQL
+}
+
+Browser -down-> Express : HTTPS\nJSON + cookie httpOnly
+Express -down-> MySQL : TCP\nprotocollo MySQL
+Express --> Uploads : lettura e scrittura\ndei file caricati
+
+note right of Server
+  Nodo applicativo e nodo dati possono
+  coincidere in sviluppo. Il sistema non
+  mantiene stato in memoria fra richieste:
+  la sessione vive nel token firmato.
+end note
+
+@enduml

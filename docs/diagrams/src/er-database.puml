@@ -1,0 +1,99 @@
+@startuml
+!include _stile.puml
+
+title Schema logico della base di dati
+
+hide circle
+skinparam linetype ortho
+
+entity "utente" as utente {
+  * id : INT <<PK>>
+  --
+  * email : VARCHAR(255) <<UQ>>
+  * password_hash : VARCHAR(255)
+  * nome : VARCHAR(50)
+  * cognome : VARCHAR(50)
+  * ruolo : ENUM
+  * quiz_superati : INT
+}
+
+entity "tutorial" as tutorial {
+  * id : INT <<PK>>
+  --
+  * titolo : VARCHAR(100)
+  * grafica : VARCHAR(255)
+  * testo : TEXT
+  * categoria : VARCHAR(50)
+  valutazione : DECIMAL(3,2)
+}
+
+entity "feedback" as feedback {
+  * utente_id : INT <<PK, FK>>
+  * tutorial_id : INT <<PK, FK>>
+  --
+  * valutazione : INT
+  * commento : VARCHAR(500)
+  * data_creazione : DATETIME
+}
+
+entity "quiz" as quiz {
+  * id : INT <<PK>>
+  --
+  * tutorial_id : INT <<FK, UQ>>
+}
+
+entity "domanda" as domanda {
+  * id : INT <<PK>>
+  --
+  * quiz_id : INT <<FK>>
+  * domanda : VARCHAR(255)
+}
+
+entity "risposta" as risposta {
+  * id : INT <<PK>>
+  --
+  * domanda_id : INT <<FK>>
+  * risposta : VARCHAR(255)
+  * corretta : BOOLEAN
+}
+
+entity "svolgimento" as svolgimento {
+  * utente_id : INT <<PK, FK>>
+  * quiz_id : INT <<PK, FK>>
+  --
+  * esito : BOOLEAN
+  * data_conseguimento : DATETIME
+  * risposte_esatte : INT
+}
+
+entity "obiettivo" as obiettivo {
+  * nome : VARCHAR(255) <<PK>>
+  --
+  * descrizione : VARCHAR(500)
+  * grafica_badge : VARCHAR(255)
+  * quiz_da_superare : INT
+}
+
+entity "conseguimento" as conseguimento {
+  * utente_id : INT <<PK, FK>>
+  * obiettivo_nome : VARCHAR(255) <<PK, FK>>
+  --
+  * data_conseguimento : DATETIME
+}
+
+utente ||--o{ feedback
+tutorial ||--o{ feedback
+tutorial ||--o| quiz
+quiz ||--|{ domanda
+domanda ||--|{ risposta
+utente ||--o{ svolgimento
+quiz ||--o{ svolgimento
+utente ||--o{ conseguimento
+obiettivo ||--o{ conseguimento
+
+note bottom of tutorial
+  `valutazione` è derivata: mantenuta
+  dai trigger su `feedback`.
+end note
+
+@enduml

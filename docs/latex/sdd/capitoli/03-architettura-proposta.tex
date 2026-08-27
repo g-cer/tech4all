@@ -1,0 +1,381 @@
+\chapter{Architettura proposta}
+\label{cap:sdd-architettura-proposta}
+
+\section{Panoramica}
+
+Tech4All è organizzato come un'applicazione client/server. Il client è
+un'applicazione Next.js che gira nel browser; il server è un processo Node.js
+che espone un'interfaccia HTTP con rappresentazioni JSON e conserva i dati in
+un DBMS relazionale. Le due parti comunicano solo attraverso quell'interfaccia:
+il client non condivide codice con il server e non ne conosce il modello a
+oggetti.
+
+Lo stile architetturale è a livelli, replicato identico dentro ogni
+sottosistema (\id{DG\_4}):
+
+\begin{description}[leftmargin=1.8cm,style=nextline]
+  \item[Rotte] traducono una richiesta HTTP in una chiamata a un servizio.
+    Verificano la forma dei dati, applicano il controllo degli accessi e
+    serializzano la risposta. Non contengono regole di dominio.
+  \item[Servizi] realizzano le regole di dominio, coordinano più DAO e
+    delimitano le transazioni. Non conoscono HTTP.
+  \item[DAO] traducono fra entità e tabelle. Non contengono decisioni.
+  \item[Entità] rappresentano i concetti del dominio e ne custodiscono lo
+    stato. Non dipendono da nulla.
+\end{description}
+
+La direzione delle dipendenze è sempre la stessa: ogni livello conosce quello
+sottostante e ignora quello soprastante.
+
+\section{Decomposizione in sottosistemi}
+\label{sec:sdd-sottosistemi}
+
+Il sistema è decomposto in sei sottosistemi applicativi, in corrispondenza
+diretta con le aree funzionali del RAD, più due sottosistemi di
+infrastruttura attraversati da tutti gli altri.
+
+\diagramma{0.72}{cmp-sottosistemi}{Decomposizione in sottosistemi e loro
+dipendenze.}{fig:sdd-cmp}
+
+\begin{longtable}{@{}L{3.4cm} L{11.0cm}@{}}
+\toprule
+\textbf{Sottosistema} & \textbf{Responsabilità} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Sottosistema} & \textbf{Responsabilità} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Autenticazione &
+Registrazione, riconoscimento delle credenziali, apertura e chiusura della
+sessione. Non decide chi può fare cosa: stabilisce soltanto chi è il
+chiamante. \\
+
+Gestione account &
+Consultazione e modifica dei dati anagrafici, cambio password, cancellazione
+dell'account, elenco degli utenti per l'amministratore. \\
+
+Gestione tutorial &
+Catalogo, ricerca, filtro, pubblicazione, aggiornamento e ritiro dei
+contenuti; sanificazione dell'HTML e normalizzazione delle immagini. \\
+
+Gestione quiz &
+Definizione dei quiz, erogazione priva di soluzioni, correzione e
+registrazione degli svolgimenti. \\
+
+Gestione feedback &
+Inserimento, modifica, rimozione e moderazione delle valutazioni. \\
+
+Gestione obiettivi &
+Definizione degli obiettivi e assegnazione automatica dei conseguimenti. \\
+
+\midrule
+
+Middleware di sicurezza &
+Verifica del token di sessione, controllo del ruolo, validazione della forma
+delle richieste, gestione degli errori e degli upload. \\
+
+Accesso ai dati &
+Connessioni al DBMS, esecuzione delle interrogazioni, delimitazione delle
+transazioni. \\
+
+\end{longtable}
+
+L'accoppiamento fra sottosistemi applicativi è quasi nullo: l'unica dipendenza
+è quella di \emph{Gestione quiz} verso \emph{Gestione obiettivi}, che riflette
+la relazione di estensione fra \id{UC\_09} e \id{UC\_10}. Non è una
+dipendenza accidentale ma la traduzione di un fatto di dominio: il
+conseguimento di un badge è una conseguenza del superamento di un quiz.
+
+\section{Mappatura hardware/software}
+\label{sec:sdd-deployment}
+
+Il sistema è distribuito su tre nodi logici: il dispositivo dell'utente, il
+nodo applicativo e il nodo dati. In sviluppo i due nodi server coincidono; la
+separazione è logica e non impone una topologia.
+
+\diagramma{0.56}{dep-deployment}{Mappatura hardware/software.}{fig:sdd-dep}
+
+Il server non conserva stato in memoria fra una richiesta e l'altra: la
+sessione vive interamente nel token firmato che il browser riallega a ogni
+richiesta. È la proprietà che rende il nodo applicativo replicabile senza
+alcuna condivisione di stato, se in futuro servisse.
+
+I file caricati risiedono sul filesystem del nodo applicativo e sono serviti
+staticamente. È la scelta più semplice compatibile con \id{DG\_6}; il prezzo
+è che, in presenza di più nodi applicativi, quella cartella dovrebbe essere
+condivisa.
+
+\section{Gestione dei dati persistenti}
+\label{sec:sdd-persistenza}
+
+\subsection{Scelta della tecnologia}
+
+La persistenza è affidata a MySQL 8. La scelta discende dalla natura dei
+dati, non da preferenze: il dominio è fatto di entità con relazioni fisse e
+molteplicità note, e gli invarianti più importanti — l'unicità di un feedback
+per coppia utente-tutorial, l'esistenza di un solo quiz per tutorial, la
+rimozione a cascata di ciò che dipende da un tutorial — sono esprimibili come
+vincoli del modello relazionale. Affidarli al DBMS significa che restano veri
+anche se il codice applicativo sbaglia (\id{DG\_5}).
+
+\subsection{Schema logico}
+
+\diagrammaLargo{er-database}{Schema logico della base di dati.}{fig:sdd-er}
+
+Le tre tabelle \file{feedback}, \file{svolgimento} e \file{conseguimento}
+hanno chiave primaria composta dalle due chiavi esterne che collegano: è la
+traduzione diretta delle classi di associazione del modello di analisi, e
+rende impossibile per costruzione l'esistenza di un duplicato.
+
+\subsection{Vincoli affidati al database}
+
+\begin{longtable}{@{}L{5.4cm} L{9.0cm}@{}}
+\toprule
+\textbf{Vincolo} & \textbf{Realizzazione} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Vincolo} & \textbf{Realizzazione} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Un utente lascia al più un feedback per tutorial &
+Chiave primaria \id{(utente\_id, tutorial\_id)} su \file{feedback} \\
+
+Un tutorial ha al più un quiz &
+Vincolo di unicità su \file{quiz.tutorial\_id} \\
+
+Un utente ha al più uno svolgimento per quiz &
+Chiave primaria \id{(utente\_id, quiz\_id)} su \file{svolgimento} \\
+
+Rimuovere un tutorial rimuove quiz, domande, risposte, svolgimenti e feedback &
+Vincoli di integrità referenziale con \id{ON DELETE CASCADE} \\
+
+La valutazione è compresa fra 1 e 5 &
+Vincolo \id{CHECK} sulle tabelle \file{feedback} e \file{tutorial} \\
+
+Il ruolo assume solo i valori previsti &
+Tipo \id{ENUM} su \file{utente.ruolo} \\
+
+La valutazione media riflette i feedback ricevuti &
+Tre trigger su \file{feedback} che ricalcolano \file{tutorial.valutazione} \\
+
+\end{longtable}
+
+\subsection{Transazioni}
+
+Due operazioni coinvolgono più tabelle e devono essere atomiche:
+
+\begin{itemize}
+  \item la \textbf{definizione di un quiz}, che inserisce il quiz, le sue
+        domande e le risposte di ciascuna domanda;
+  \item la \textbf{correzione di un quiz}, che registra lo svolgimento,
+        ricalcola il numero di quiz superati e assegna gli eventuali
+        conseguimenti.
+\end{itemize}
+
+Entrambe sono racchiuse nella funzione \id{withTransaction}, che apre la
+transazione, esegue il lavoro, effettua il commit e in caso di eccezione il
+rollback, rilasciando sempre la connessione. I DAO coinvolti accettano la
+connessione della transazione come parametro: usare il pool comune
+all'interno di una transazione già aperta porterebbe la stessa richiesta ad
+attendere i lock che essa stessa detiene.
+
+\diagramma{0.86}{sd-correzione-quiz}{Correzione di un quiz: propagazione della
+connessione transazionale ai DAO coinvolti.}{fig:sdd-sd-correzione}
+
+\section{Controllo degli accessi e sicurezza}
+\label{sec:sdd-accessi}
+
+\subsection{Riconoscimento del chiamante}
+
+La sessione è un token JWT~\cite{rfc7519} firmato dal server, contenente
+l'identificativo dell'utente e il suo ruolo, depositato in un cookie
+\id{httpOnly}, \id{SameSite=Lax} e, in produzione, \id{Secure}. Il token non
+è leggibile dal JavaScript di pagina: una vulnerabilità di scripting non
+permette di esfiltrarlo.
+
+\diagramma{0.66}{sd-autenticazione}{Autenticazione e successiva richiesta
+protetta.}{fig:sdd-sd-auth}
+
+\subsection{Matrice di controllo degli accessi}
+
+Il controllo è realizzato da due middleware: \id{requireAuth} rifiuta le
+richieste prive di una sessione valida; \id{requireAdmin} rifiuta in più
+quelle di chi non ha ruolo amministratore. Sono attraversati prima che il
+sottosistema applicativo entri in gioco.
+
+\begin{longtable}{@{}L{6.2cm} C{2.4cm} C{2.4cm} C{2.4cm}@{}}
+\toprule
+\textbf{Operazione} & \textbf{Visitatore} & \textbf{Utente} & \textbf{Amm.} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Operazione} & \textbf{Visitatore} & \textbf{Utente} & \textbf{Amm.} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Registrarsi, autenticarsi              & \checkmark & --- & --- \\
+Consultare catalogo, tutorial, feedback, quiz, obiettivi & \checkmark & \checkmark & \checkmark \\
+Consultare e modificare il proprio profilo & --- & \checkmark & \checkmark \\
+Eliminare il proprio account           & --- & \checkmark & \checkmark \\
+Consegnare un quiz                     & --- & \checkmark & \checkmark \\
+Gestire il proprio feedback            & --- & \checkmark & \checkmark \\
+Consultare i propri badge              & --- & \checkmark & \checkmark \\
+Pubblicare, aggiornare, ritirare tutorial & --- & --- & \checkmark \\
+Definire e rimuovere quiz              & --- & --- & \checkmark \\
+Caricare ed eliminare immagini         & --- & --- & \checkmark \\
+Definire, aggiornare, eliminare obiettivi & --- & --- & \checkmark \\
+Consultare ed eliminare account altrui & --- & --- & \checkmark \\
+Moderare i feedback altrui             & --- & --- & \checkmark \\
+
+\end{longtable}
+
+\subsection{Provenienza dell'identità}
+
+Un principio attraversa tutto il sistema (\id{DG\_1}): l'autore di
+un'operazione è sempre l'utente della sessione. Nessuna rotta accetta un
+identificativo utente dal corpo o dai parametri della richiesta per stabilire
+per conto di chi agire. L'unico caso in cui un identificativo altrui compare
+in una rotta è la moderazione dei feedback, dove indica il \emph{bersaglio}
+dell'operazione e non il suo autore, ed è accessibile solo agli
+amministratori.
+
+\subsection{Altre misure}
+
+\begin{longtable}{@{}L{4.2cm} L{10.2cm}@{}}
+\toprule
+\textbf{Minaccia} & \textbf{Contromisura} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Minaccia} & \textbf{Contromisura} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Furto di credenziali dal database &
+Le password sono conservate come hash bcrypt~\cite{provos1999}, con un fattore
+di costo configurabile. \\
+
+Enumerazione degli account &
+Credenziali errate ed email inesistente producono la stessa risposta. \\
+
+Iniezione di codice nei contenuti &
+L'HTML dei tutorial è sanificato in ingresso contro una whitelist di
+marcatori e attributi; schemi di URL diversi da \id{http}, \id{https} e
+\id{mailto} sono rimossi~\cite{owasp2021}. \\
+
+Iniezione SQL &
+Tutte le interrogazioni usano parametri preparati; nessun valore proveniente
+dall'esterno è concatenato nel testo di una query. \\
+
+Traversamento del filesystem &
+I nomi dei file caricati sono generati dal server; l'eliminazione accetta solo
+nomi semplici, risolti e verificati dentro la cartella consentita. \\
+
+Richieste da origini non previste &
+Il CORS autorizza una sola origine, configurata, e ammette le credenziali solo
+per essa. \\
+
+Divulgazione di dettagli interni &
+Gli errori imprevisti producono una risposta generica; i dettagli restano nei
+log del server. \\
+
+\end{longtable}
+
+\section{Controllo del flusso globale}
+\label{sec:sdd-flusso}
+
+Il sistema è guidato dagli eventi: non esiste un flusso di controllo proprio,
+ma una sequenza di reazioni a richieste HTTP. Ogni richiesta attraversa
+sempre le stesse fasi, nello stesso ordine.
+
+\begin{enumerate}
+  \item \textbf{Ingresso}: parsing del corpo e dei cookie, verifica
+        dell'origine.
+  \item \textbf{Autenticazione}: lettura e verifica del token, se la rotta la
+        richiede.
+  \item \textbf{Autorizzazione}: verifica del ruolo, se la rotta la richiede.
+  \item \textbf{Validazione}: controllo della forma dei dati; una violazione
+        interrompe qui, senza raggiungere il servizio.
+  \item \textbf{Dominio}: il servizio applica le regole e coordina i DAO.
+  \item \textbf{Serializzazione}: l'entità è tradotta in DTO.
+  \item \textbf{Uscita}: la risposta è emessa; se una fase ha sollevato un
+        errore, il gestore centralizzato lo traduce in uno stato HTTP.
+\end{enumerate}
+
+Le fasi 2, 3, 4 e 7 sono realizzate da middleware e sono quindi identiche per
+tutti i sottosistemi (\id{DG\_2}, \id{DG\_4}). Un solo processo serve tutte
+le richieste; la concorrenza è quella del ciclo di eventi di Node.js, e non
+esiste stato condiviso in memoria fra richieste diverse.
+
+\section{Condizioni limite}
+\label{sec:sdd-condizioni-limite}
+
+\subsection{Avvio}
+
+All'avvio il server verifica la presenza di tutte le variabili d'ambiente
+obbligatorie e fallisce immediatamente elencando quelle mancanti, prima di
+mettersi in ascolto. È una scelta deliberata: un sistema che parte senza il
+segreto di firma o senza le credenziali del database fallirebbe più tardi, in
+modo meno comprensibile.
+
+Il pool di connessioni è creato al primo utilizzo e non apre connessioni
+all'avvio: l'indisponibilità del database non impedisce al processo di
+partire, ma si manifesta come errore sulle richieste che ne hanno bisogno.
+
+\subsection{Spegnimento}
+
+Alla ricezione di \id{SIGINT} o \id{SIGTERM} il server smette di accettare
+nuove connessioni, attende il completamento di quelle in corso, chiude il
+pool e termina. Le transazioni aperte al momento dell'interruzione vengono
+annullate dal DBMS alla caduta della connessione: il database non resta in
+uno stato intermedio.
+
+\subsection{Fallimenti}
+
+\begin{longtable}{@{}L{4.6cm} L{9.8cm}@{}}
+\toprule
+\textbf{Condizione} & \textbf{Comportamento del sistema} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Condizione} & \textbf{Comportamento del sistema} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+Database irraggiungibile &
+Le richieste che richiedono dati falliscono con \id{500} e un messaggio
+generico; le rotte statiche continuano a rispondere. \\
+
+Errore durante una transazione &
+Rollback automatico: nessuna scrittura parziale resta applicata. \\
+
+File di upload non scrivibile &
+La pubblicazione fallisce con un errore di validazione; il tutorial non viene
+creato. \\
+
+Token scaduto o manomesso &
+Trattato come sessione assente: \id{401} sulle rotte protette, accesso
+anonimo su quelle pubbliche. \\
+
+Richiesta con corpo eccessivo &
+Rifiutata dal limite di dimensione prima di raggiungere l'applicazione. \\
+
+Eccezione non prevista &
+Intercettata dal gestore centralizzato, registrata nei log e tradotta in
+\id{500} privo di dettagli interni. \\
+
+\end{longtable}

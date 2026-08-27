@@ -1,0 +1,45 @@
+@startuml
+!include _stile.puml
+
+top to bottom direction
+
+actor "Amministratore" as A
+
+rectangle "Tech4All" {
+
+  package "Gestione dei contenuti" {
+    usecase "UC_13\nPubblicare un tutorial"        as UC13
+    usecase "UC_14\nCaricare un'immagine"          as UC14
+    usecase "UC_15\nAggiornare un tutorial"        as UC15
+    usecase "UC_16\nRitirare un tutorial"          as UC16
+    usecase "UC_17\nDefinire il quiz\ndi un tutorial" as UC17
+    usecase "UC_18\nRimuovere il quiz\ndi un tutorial" as UC18
+  }
+
+  package "Gestione della piattaforma" {
+    usecase "UC_19\nGestire gli obiettivi"         as UC19
+    usecase "UC_20\nAmministrare gli account"      as UC20
+    usecase "UC_21\nModerare i feedback"           as UC21
+  }
+}
+
+A --> UC13
+A --> UC15
+A --> UC16
+A --> UC17
+A --> UC18
+A --> UC19
+A --> UC20
+A --> UC21
+
+UC13 ..> UC14 : <<include>>
+UC15 ..> UC14 : <<include>>
+
+note bottom of UC14
+  Il caricamento di immagini è condiviso
+  fra pubblicazione e aggiornamento:
+  copertina e immagini del contenuto
+  seguono lo stesso percorso.
+end note
+
+@enduml
