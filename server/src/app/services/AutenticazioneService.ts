@@ -1,222 +1,85 @@
-// Importazione delle entità e dei DAO
-import { Utente } from "../entity/gestione_autenticazione/Utente";
+import bcrypt from "bcrypt";
 import { UtenteDao } from "../dao/UtenteDao";
+import { Utente } from "../entity/gestione_autenticazione/Utente";
+import { Ruolo } from "../entity/gestione_autenticazione/Ruolo";
+import {
+  ConflictError,
+  UnauthorizedError,
+  ValidationError,
+} from "../errors/AppError";
+import { MESSAGGIO_PASSWORD, UTENTE } from "../validation/regole";
+import { env } from "../../config/env";
 
+/** Dati necessari a registrare un nuovo utente. */
+export interface DatiRegistrazione {
+  email: string;
+  password: string;
+  nome: string;
+  cognome: string;
+}
+
+/**
+ * Registrazione e riconoscimento degli utenti.
+ *
+ * Il servizio non emette né valida token: se ne occupa il middleware di
+ * autenticazione. Qui si verificano soltanto le credenziali.
+ */
 export class AutenticazioneService {
-  private utenteDao: UtenteDao;
-
-  constructor() {
-    this.utenteDao = new UtenteDao();
-  }
+  constructor(private readonly utenteDao: UtenteDao = new UtenteDao()) {}
 
   /**
-   * Metodo per gestire il login dell'utente.
-   * @param email - Email utente inserito.
-   * @param password - Password inserita.
-   * @returns Una promessa che risolve un oggetto con informazioni sull'utente o un messaggio di errore.
+   * Registra un nuovo utente con ruolo `utente`.
+   *
+   * @throws ValidationError se la password non rispetta la politica prevista.
+   * @throws ConflictError se l'email è già associata a un account.
    */
-  async login(
-    email: string,
-    password: string,
-  ): Promise<{ success: boolean; user?: Utente; message?: string }> {
-    try {
-      // Validazione input
-      if (!email || !password) {
-        return {
-          success: false,
-          message: "Email e password sono obbligatori.",
-        };
-      }
-
-      if (email.length > 30 || email.length < 6) {
-        return {
-          success: false,
-          message: "Lunghezza email non valida.",
-        };
-      }
-
-      const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-      if (!emailRegex.test(email)) {
-        return {
-          success: false,
-          message: "Formato email non valido.",
-        };
-      }
-
-      const passwordRegex = /^(?=.*[!@#$%^&*])(?=.*\d)(?=.*[A-Z]).{8,14}$/;
-      if (!passwordRegex.test(password)) {
-        return {
-          success: false,
-          message: "Formato password non valido.",
-        };
-      }
-
-      // Recupera l'utente dal database tramite il DAO
-      const user: Utente | null = await this.utenteDao.getUtenteByEmail(email);
-
-      // Controllo dell'esistenza dell'utente
-      if (!user) {
-        return {
-          success: false,
-          message: "Utente non trovato.",
-        };
-      }
-
-      // Verifica della password
-      if (user.getPassword() != password) {
-        return {
-          success: false,
-          message: "Password errata.",
-        };
-      }
-
-      // Login riuscito
-      return {
-        success: true,
-        user: user,
-      };
-    } catch (error) {
-      console.error("Errore durante il login:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+  public async registra(dati: DatiRegistrazione): Promise<Utente> {
+    if (!UTENTE.passwordRegex.test(dati.password)) {
+      throw new ValidationError(MESSAGGIO_PASSWORD);
     }
-  }
 
-  /**
-   * Metodo per gestire il logout dell'utente.
-   * @param userId - ID dell'utente che sta effettuando il logout.
-   * @returns Una promessa che risolve un oggetto con il risultato dell'operazione.
-   */
-  async logout(userId: string): Promise<{ success: boolean; message: string }> {
-    try {
-      // Validazione dell'input
-      if (!userId) {
-        return {
-          success: false,
-          message: "ID utente obbligatorio per effettuare il logout.",
-        };
-      }
-
-      // Qui puoi implementare logica specifica per il tuo sistema, ad esempio:
-      // - Invalidare token JWT salvati nel database
-      // - Aggiornare uno stato dell'utente nel database
-      // - Semplicemente registrare l'evento di logout
-
-      console.log(`Logout effettuato per l'utente con ID: ${userId}`);
-
-      // Logout riuscito
-      return {
-        success: true,
-        message: "Logout effettuato con successo.",
-      };
-    } catch (error) {
-      console.error("Errore durante il logout:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+    const esistente = await this.utenteDao.findByEmail(dati.email);
+    if (esistente) {
+      throw new ConflictError("Email già in uso.");
     }
-  }
 
-  /**
-   * Metodo per registrare un nuovo utente.
-   * @param email - Email dell'utente.
-   * @param password - Password dell'utente.
-   * @param nome - Nome dell'utente.
-   * @param cognome - Cognome dell'utente.
-   * @returns Una promessa che risolve un oggetto con il risultato dell'operazione.
-   */
-  async registraUtente(
-    email: string,
-    password: string,
-    nome: string,
-    cognome: string,
-  ): Promise<{ success: boolean; message: string; user?: Utente }> {
-    try {
-      if (!email || !password || !nome || !cognome) {
-        return {
-          success: false,
-          message: "Tutti i campi sono obbligatori.",
-        };
-      }
-
-      //lunghezza nome compresa tra 1 e 20 caratteri
-      if (nome.length < 2 || nome.length > 20) {
-        return {
-          success: false,
-          message: "Il nome fornito non è valido.",
-        };
-      }
-
-      //lunghezza cognome compresa tra 1 e 20 caratteri
-      if (cognome.length < 2 || cognome.length > 20) {
-        return {
-          success: false,
-          message: "Il cognome fornito non è valido.",
-        };
-      }
-
-      const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-      if (!emailRegex.test(email)) {
-        return {
-          success: false,
-          message: "Formato email non valido.",
-        };
-      }
-
-      const passwordRegex = /^(?=.*[!@#$%^&*])(?=.*\d)(?=.*[A-Z]).{8,14}$/;
-      if (!passwordRegex.test(password)) {
-        return {
-          success: false,
-          message:
-            "La password deve contenere almeno 8 caratteri, una lettera maiuscola, un numero e un carattere speciale.",
-        };
-      }
-
-      const utenteEsistente = await this.utenteDao.getUtenteByEmail(email);
-      if (utenteEsistente) {
-        return {
-          success: false,
-          message: "Email già in uso.",
-        };
-      }
-
-      const ruolo = false; // Predefinito come booleano per "utente"
-
-      const nuovoUtente = new Utente(
+    const passwordHash = await bcrypt.hash(dati.password, env.bcryptRounds);
+    return this.utenteDao.create(
+      new Utente(
         undefined,
-        email,
-        password,
-        nome,
-        cognome,
-        ruolo,
+        dati.email,
+        passwordHash,
+        dati.nome,
+        dati.cognome,
+        Ruolo.UTENTE,
         0,
-      );
-
-      await this.utenteDao.createUtente(nuovoUtente);
-
-      return {
-        success: true,
-        message: "Registrazione completata con successo.",
-      };
-    } catch (error) {
-      console.error("Errore durante la registrazione:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
-    }
+      ),
+    );
   }
-  // Metodo per controllare se un'email esiste nel database
-  async checkEmailExists(email: string): Promise<boolean> {
-    try {
-      const user = await this.utenteDao.getUtenteByEmail(email);
-      return !!user;
-    } catch (error) {
-      console.error("Errore durante il controllo dell'email:", error);
-      return false;
+
+  /**
+   * Verifica le credenziali di accesso.
+   *
+   * Email inesistente e password errata producono lo stesso errore: distinguerli
+   * permetterebbe di enumerare gli account registrati.
+   *
+   * @throws UnauthorizedError se le credenziali non sono valide.
+   */
+  public async login(email: string, password: string): Promise<Utente> {
+    const utente = await this.utenteDao.findByEmail(email);
+    const passwordCorretta =
+      utente !== null &&
+      (await bcrypt.compare(password, utente.getPasswordHash()));
+
+    if (!utente || !passwordCorretta) {
+      throw new UnauthorizedError("Email o password non corretti.");
     }
+
+    return utente;
+  }
+
+  /** True se l'email è già registrata. Usata per il controllo in tempo reale del form. */
+  public async emailEsiste(email: string): Promise<boolean> {
+    return (await this.utenteDao.findByEmail(email)) !== null;
   }
 }

@@ -1,26 +1,29 @@
-import express, { Request, Response } from "express";
-import path from "path";
-import AuthRoutes from "./app/routes/auth";
-import TutorialRoutes from "./app/routes/tutorials";
-import FeedbackRoutes from "./app/routes/feedback";
-import AccountsRoutes from "./app/routes/accounts";
-import QuizRoutes from "./app/routes/quizRoutes";
-import cors from "cors";
-const app = express();
-app.use(cors());
+import { creaApp } from "./app";
+import { assertEnv, env } from "./config/env";
+import { closePool } from "./db/pool";
 
-// Middleware per il parsing del JSON
-app.use(express.json());
+/** Avvia il server HTTP, verificando prima la configurazione. */
+function avvia(): void {
+  try {
+    assertEnv();
+  } catch (error) {
+    console.error((error as Error).message);
+    process.exit(1);
+  }
 
-// Rotte personalizzate
-app.use("/auth", AuthRoutes);
-app.use("/tutorials", TutorialRoutes);
-app.use("/feedback", FeedbackRoutes);
-app.use("/accounts", AccountsRoutes);
-app.use("/quiz", QuizRoutes);
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+  const server = creaApp().listen(env.port, () => {
+    console.log(`Server avviato su http://localhost:${env.port}`);
+  });
 
-app.listen(5000, (err?: any) => {
-  if (err) throw err;
-  console.log("Server avviato su http://localhost:5000");
-});
+  const spegni = (segnale: string): void => {
+    console.log(`\n${segnale} ricevuto: chiusura in corso.`);
+    server.close(() => {
+      void closePool().finally(() => process.exit(0));
+    });
+  };
+
+  process.on("SIGINT", () => spegni("SIGINT"));
+  process.on("SIGTERM", () => spegni("SIGTERM"));
+}
+
+avvia();

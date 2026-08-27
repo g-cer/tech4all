@@ -1,31 +1,31 @@
+import { Ruolo } from "./Ruolo";
+
+/**
+ * Utente registrato alla piattaforma.
+ *
+ * La password non è mai conservata in chiaro: `passwordHash` contiene
+ * l'hash bcrypt prodotto in fase di registrazione.
+ */
 export class Utente {
-  private id!: number | undefined;
-  private email: string;
-  private password: string;
-  private nome: string;
-  private cognome: string;
-  private ruolo: boolean;
-  private quizSuperati: number = 0; // Aggiunta della variabile quizSuperati
-
+  /**
+   * @param id Identificativo assegnato dal database; `undefined` prima della persistenza.
+   * @param email Indirizzo email, univoco nel sistema.
+   * @param passwordHash Hash bcrypt della password.
+   * @param nome Nome dell'utente.
+   * @param cognome Cognome dell'utente.
+   * @param ruolo Ruolo assegnato, che determina i permessi.
+   * @param quizSuperati Numero di quiz distinti superati, usato per i badge.
+   */
   constructor(
-    id: number | undefined,
-    email: string,
-    password: string,
-    nome: string,
-    cognome: string,
-    ruolo: boolean,
-    quizSuperati: number,
-  ) {
-    this.id = id;
-    this.email = email;
-    this.password = password;
-    this.nome = nome;
-    this.cognome = cognome;
-    this.ruolo = ruolo;
-    this.quizSuperati = quizSuperati;
-  }
+    private readonly id: number | undefined,
+    private email: string,
+    private passwordHash: string,
+    private nome: string,
+    private cognome: string,
+    private ruolo: Ruolo,
+    private quizSuperati: number = 0,
+  ) {}
 
-  // Getters
   public getId(): number | undefined {
     return this.id;
   }
@@ -34,8 +34,8 @@ export class Utente {
     return this.email;
   }
 
-  public getPassword(): string {
-    return this.password;
+  public getPasswordHash(): string {
+    return this.passwordHash;
   }
 
   public getNome(): string {
@@ -46,37 +46,40 @@ export class Utente {
     return this.cognome;
   }
 
-  public getRuolo(): string {
-    return this.ruolo ? "admin" : "utente";
+  public getRuolo(): Ruolo {
+    return this.ruolo;
   }
 
-  // Setters
-  public setEmail(value: string) {
-    this.email = value;
-  }
-
-  public setPassword(value: string) {
-    this.password = value;
-  }
-
-  public setNome(value: string) {
-    this.nome = value;
-  }
-
-  public setCognome(value: string) {
-    this.cognome = value;
-  }
-
-  public setRuolo(value: string) {
-    this.ruolo = value === "admin";
-  }
-
-  // Getter e Setter per quizSuperati
   public getQuizSuperati(): number {
     return this.quizSuperati;
   }
 
-  public setQuizSuperati(value: number) {
+  /** True se l'utente ha privilegi amministrativi. */
+  public isAdmin(): boolean {
+    return this.ruolo === Ruolo.ADMIN;
+  }
+
+  public setEmail(value: string): void {
+    this.email = value;
+  }
+
+  public setPasswordHash(value: string): void {
+    this.passwordHash = value;
+  }
+
+  public setNome(value: string): void {
+    this.nome = value;
+  }
+
+  public setCognome(value: string): void {
+    this.cognome = value;
+  }
+
+  public setRuolo(value: Ruolo): void {
+    this.ruolo = value;
+  }
+
+  public setQuizSuperati(value: number): void {
     this.quizSuperati = value;
   }
 }

@@ -1,112 +1,179 @@
-import { FieldPacket, Pool, RowDataPacket } from "mysql2/promise";
+import {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { Quiz } from "../entity/gestione_quiz/Quiz";
 import { Domanda } from "../entity/gestione_quiz/Domanda";
 import { Risposta } from "../entity/gestione_quiz/Risposta";
-import pool from "../../db";
+import { getPool } from "../../db/pool";
 
-export class QuizDao {
-  private db: Pool;
+/**
+ * Riga del join quiz-domanda-risposta. Domande e risposte non hanno ciclo di
+ * vita autonomo (cadono in cascata con il quiz), perciò l'intero aggregato è
+ * gestito da un unico DAO e caricato con una sola query.
+ */
+interface RigaQuiz extends RowDataPacket {
+  quiz_id: number;
+  tutorial_id: number;
+  domanda_id: number | null;
+  domanda_testo: string | null;
+  risposta_id: number | null;
+  risposta_testo: string | null;
+  corretta: number | null;
+}
 
-  constructor() {
-    this.db = pool; // Utilizza la connessione al database
+const SELECT_AGGREGATO = `
+  SELECT q.id            AS quiz_id,
+         q.tutorial_id   AS tutorial_id,
+         d.id            AS domanda_id,
+         d.domanda       AS domanda_testo,
+         r.id            AS risposta_id,
+         r.risposta      AS risposta_testo,
+         r.corretta      AS corretta
+    FROM quiz q
+    LEFT JOIN domanda  d ON d.quiz_id = q.id
+    LEFT JOIN risposta r ON r.domanda_id = d.id`;
+
+function assembla(righe: RigaQuiz[]): Quiz | null {
+  if (righe.length === 0) {
+    return null;
   }
 
-  // Metodo per ottenere tutti i quiz
-  public async getAllQuiz(): Promise<Quiz[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] =
-      await this.db.query("SELECT * FROM quiz");
-    const quizList: Quiz[] = [];
-
-    for (const row of rows) {
-      const domande = await this.getDomandeByQuizId(row.id);
-      quizList.push(new Quiz(row.tutorial_id, domande, row.id));
+  const domande = new Map<number, Domanda>();
+  for (const riga of righe) {
+    if (riga.domanda_id === null) {
+      continue;
     }
 
-    return quizList;
+    let domanda = domande.get(riga.domanda_id);
+    if (!domanda) {
+      domanda = new Domanda(
+        riga.domanda_testo ?? "",
+        [],
+        riga.quiz_id,
+        riga.domanda_id,
+      );
+      domande.set(riga.domanda_id, domanda);
+    }
+
+    if (riga.risposta_id !== null) {
+      domanda
+        .getRisposte()
+        .push(
+          new Risposta(
+            riga.risposta_testo ?? "",
+            riga.corretta === 1,
+            riga.domanda_id,
+            riga.risposta_id,
+          ),
+        );
+    }
   }
 
-  // Metodo per ottenere un quiz specifico per ID
-  public async getQuizById(id: number): Promise<Quiz | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM quiz WHERE id = ?",
+  return new Quiz(
+    righe[0].tutorial_id,
+    [...domande.values()],
+    righe[0].quiz_id,
+  );
+}
+
+/** Accesso all'aggregato quiz (quiz, domande, risposte). */
+export class QuizDao {
+  constructor(private readonly db: Pool = getPool()) {}
+
+  public async findById(id: number): Promise<Quiz | null> {
+    const [righe] = await this.db.query<RigaQuiz[]>(
+      `${SELECT_AGGREGATO} WHERE q.id = ? ORDER BY d.id, r.id`,
       [id],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      const domande = await this.getDomandeByQuizId(row.id);
-      return new Quiz(row.tutorial_id, domande, row.id);
-    }
-    return null;
+    return assembla(righe);
   }
 
-  // Metodo per ottenere tutte le domande associate a un quiz
-  private async getDomandeByQuizId(quizId: number): Promise<Domanda[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM domanda WHERE quiz_id = ?",
-      [quizId],
-    );
-    const domande: Domanda[] = [];
-
-    for (const row of rows) {
-      const risposte = await this.getRisposteByDomandaId(row.id);
-      domande.push(new Domanda(row.domanda, risposte, row.quiz_id, row.id));
-    }
-
-    return domande;
-  }
-
-  // Metodo per ottenere tutte le risposte associate a una domanda
-  private async getRisposteByDomandaId(domandaId: number): Promise<Risposta[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM risposta WHERE domanda_id = ?",
-      [domandaId],
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Risposta(row.risposta, row.corretta, row.domanda_id, row.id),
-    );
-  }
-
-  // Metodo per creare un nuovo quiz
-  public async createQuiz(quiz: Quiz): Promise<void> {
-    const idTutorial = quiz.getTutorialId();
-    const [result]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "INSERT INTO quiz (tutorial_id) VALUES (?)",
-      [idTutorial],
-    );
-    const insertedId = (result as RowDataPacket).insertId;
-    quiz.setId(insertedId);
-  }
-
-  // Metodo per aggiornare un quiz esistente
-  public async updateQuiz(quiz: Quiz): Promise<void> {
-    const id = quiz.getId();
-    const idTutorial = quiz.getTutorialId();
-    if (id === 0) {
-      throw new Error("Quiz ID is required for updating.");
-    }
-    await this.db.query("UPDATE quiz SET tutorial_id = ? WHERE id = ?", [
-      idTutorial,
-      id,
-    ]);
-  }
-
-  // Metodo per eliminare un quiz
-  public async deleteQuiz(id: number): Promise<void> {
-    await this.db.query("DELETE FROM quiz WHERE id = ?", [id]);
-  }
-
-  // Metodo per ottenere un quiz specifico per tutorial ID
-  public async getQuizByTutorialId(tutorialId: number): Promise<Quiz | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM quiz WHERE tutorial_id = ?",
+  public async findByTutorial(tutorialId: number): Promise<Quiz | null> {
+    const [righe] = await this.db.query<RigaQuiz[]>(
+      `${SELECT_AGGREGATO} WHERE q.tutorial_id = ? ORDER BY d.id, r.id`,
       [tutorialId],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      const domande = await this.getDomandeByQuizId(row.id);
-      return new Quiz(row.tutorial_id, domande, row.id);
+    return assembla(righe);
+  }
+
+  /**
+   * Inserisce quiz, domande e risposte.
+   *
+   * @param quiz Aggregato da persistere.
+   * @param connection Connessione transazionale fornita dal chiamante: la
+   *   creazione coinvolge più tabelle e deve essere atomica.
+   * @returns L'id assegnato al quiz.
+   */
+  public async create(quiz: Quiz, connection: PoolConnection): Promise<number> {
+    const [esitoQuiz] = await connection.query<ResultSetHeader>(
+      "INSERT INTO quiz (tutorial_id) VALUES (?)",
+      [quiz.getTutorialId()],
+    );
+    const quizId = esitoQuiz.insertId;
+
+    for (const domanda of quiz.getDomande()) {
+      const [esitoDomanda] = await connection.query<ResultSetHeader>(
+        "INSERT INTO domanda (quiz_id, domanda) VALUES (?, ?)",
+        [quizId, domanda.getTesto()],
+      );
+      const domandaId = esitoDomanda.insertId;
+      domanda.setId(domandaId);
+      domanda.setQuizId(quizId);
+
+      for (const risposta of domanda.getRisposte()) {
+        const [esitoRisposta] = await connection.query<ResultSetHeader>(
+          "INSERT INTO risposta (domanda_id, risposta, corretta) VALUES (?, ?, ?)",
+          [domandaId, risposta.getTesto(), risposta.isCorretta()],
+        );
+        risposta.setId(esitoRisposta.insertId);
+        risposta.setDomandaId(domandaId);
+      }
     }
-    return null;
+
+    quiz.setId(quizId);
+    return quizId;
+  }
+
+  /**
+   * Sostituisce integralmente le domande di un quiz esistente.
+   * Le vecchie domande vengono eliminate: le risposte cadono in cascata.
+   */
+  public async replaceDomande(
+    quizId: number,
+    domande: Domanda[],
+    connection: PoolConnection,
+  ): Promise<void> {
+    await connection.query("DELETE FROM domanda WHERE quiz_id = ?", [quizId]);
+
+    for (const domanda of domande) {
+      const [esitoDomanda] = await connection.query<ResultSetHeader>(
+        "INSERT INTO domanda (quiz_id, domanda) VALUES (?, ?)",
+        [quizId, domanda.getTesto()],
+      );
+      const domandaId = esitoDomanda.insertId;
+      domanda.setId(domandaId);
+      domanda.setQuizId(quizId);
+
+      for (const risposta of domanda.getRisposte()) {
+        const [esitoRisposta] = await connection.query<ResultSetHeader>(
+          "INSERT INTO risposta (domanda_id, risposta, corretta) VALUES (?, ?, ?)",
+          [domandaId, risposta.getTesto(), risposta.isCorretta()],
+        );
+        risposta.setId(esitoRisposta.insertId);
+        risposta.setDomandaId(domandaId);
+      }
+    }
+  }
+
+  /** Elimina il quiz; domande, risposte e svolgimenti cadono in cascata. */
+  public async delete(id: number): Promise<boolean> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      "DELETE FROM quiz WHERE id = ?",
+      [id],
+    );
+    return esito.affectedRows > 0;
   }
 }

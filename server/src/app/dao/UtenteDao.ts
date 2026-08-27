@@ -1,109 +1,133 @@
-import { Pool, RowDataPacket } from "mysql2/promise";
+import {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { Utente } from "../entity/gestione_autenticazione/Utente";
-import pool from "../../db";
+import { Ruolo } from "../entity/gestione_autenticazione/Ruolo";
+import { getPool } from "../../db/pool";
 
+interface RigaUtente extends RowDataPacket {
+  id: number;
+  email: string;
+  password_hash: string;
+  nome: string;
+  cognome: string;
+  ruolo: Ruolo;
+  quiz_superati: number;
+}
+
+function toEntity(riga: RigaUtente): Utente {
+  return new Utente(
+    riga.id,
+    riga.email,
+    riga.password_hash,
+    riga.nome,
+    riga.cognome,
+    riga.ruolo,
+    riga.quiz_superati,
+  );
+}
+
+/** Accesso alla tabella `utente`. */
 export class UtenteDao {
-  private db: Pool;
-  static updateUtente: (utente: Utente) => Promise<void>;
+  constructor(private readonly db: Pool = getPool()) {}
 
-  constructor() {
-    this.db = pool; // Utilizza il modulo di connessione al database
-  }
-
-  // Metodo per ottenere tutti gli utenti
-  public async getAllUtenti(): Promise<Utente[]> {
-    const [rows] = await this.db.query<RowDataPacket[]>("SELECT * FROM utente");
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Utente(
-          row.id,
-          row.email,
-          row.password,
-          row.nome,
-          row.cognome,
-          row.ruolo === "admin", // Converte la stringa in booleano
-          row.quiz_superati, // Include quizSuperati dal risultato della query
-        ),
+  public async findAll(): Promise<Utente[]> {
+    const [righe] = await this.db.query<RigaUtente[]>(
+      "SELECT * FROM utente ORDER BY cognome, nome",
     );
+    return righe.map(toEntity);
   }
 
-  // Metodo per ottenere un utente specifico per email
-  public async getUtenteByEmail(email: string): Promise<Utente | null> {
-    const [rows] = await this.db.query<RowDataPacket[]>(
+  public async findById(id: number): Promise<Utente | null> {
+    const [righe] = await this.db.query<RigaUtente[]>(
+      "SELECT * FROM utente WHERE id = ?",
+      [id],
+    );
+    return righe.length > 0 ? toEntity(righe[0]) : null;
+  }
+
+  public async findByEmail(email: string): Promise<Utente | null> {
+    const [righe] = await this.db.query<RigaUtente[]>(
       "SELECT * FROM utente WHERE email = ?",
       [email],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Utente(
-        row.id,
-        row.email,
-        row.password,
-        row.nome,
-        row.cognome,
-        row.ruolo === "admin", // Converte la stringa in booleano
-        row.quiz_superati, // Include quizSuperati dal risultato della query
-      );
-    }
-    return null;
+    return righe.length > 0 ? toEntity(righe[0]) : null;
   }
 
-  // Metodo per creare un nuovo utente
-  public async createUtente(utente: Utente): Promise<void> {
-    await this.db.query(
-      "INSERT INTO utente (email, password, nome, cognome, ruolo, quiz_superati) VALUES (?, ?, ?, ?, ?, ?)",
+  /**
+   * Inserisce un nuovo utente.
+   *
+   * @returns L'utente persistito, completo dell'id assegnato dal database.
+   */
+  public async create(utente: Utente): Promise<Utente> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      `INSERT INTO utente (email, password_hash, nome, cognome, ruolo, quiz_superati)
+       VALUES (?, ?, ?, ?, ?, ?)`,
       [
         utente.getEmail(),
-        utente.getPassword(),
+        utente.getPasswordHash(),
         utente.getNome(),
         utente.getCognome(),
-        utente.getRuolo(), // Il getter converte in "utente" o "admin"
-        utente.getQuizSuperati(), // Include quizSuperati dal valore dell'oggetto utente
+        utente.getRuolo(),
+        utente.getQuizSuperati(),
+      ],
+    );
+
+    return new Utente(
+      esito.insertId,
+      utente.getEmail(),
+      utente.getPasswordHash(),
+      utente.getNome(),
+      utente.getCognome(),
+      utente.getRuolo(),
+      utente.getQuizSuperati(),
+    );
+  }
+
+  /** Aggiorna i dati anagrafici e le credenziali di un utente esistente. */
+  public async update(utente: Utente): Promise<void> {
+    await this.db.query(
+      `UPDATE utente
+          SET email = ?, password_hash = ?, nome = ?, cognome = ?, ruolo = ?
+        WHERE id = ?`,
+      [
+        utente.getEmail(),
+        utente.getPasswordHash(),
+        utente.getNome(),
+        utente.getCognome(),
+        utente.getRuolo(),
+        utente.getId(),
       ],
     );
   }
 
-  // Metodo per aggiornare il numero di quiz superati
-  public async updateQuizSuperati(utente: Utente): Promise<void> {
-    if (utente.getId() === undefined) {
-      throw new Error("ID dell'utente non definito");
-    }
-
-    // Verifica che l'utente esista
-    const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT * FROM utente WHERE id = ?",
-      [utente.getId()],
-    );
-
-    if (rows.length === 0) {
-      throw new Error("Utente non trovato");
-    }
-
-    // Esegui l'update
-    await this.db.query("UPDATE utente SET quiz_superati = ? WHERE id = ?", [
-      utente.getQuizSuperati(),
-      utente.getId(),
+  /**
+   * Aggiorna il contatore dei quiz superati.
+   *
+   * @param connection Connessione transazionale, quando l'aggiornamento fa
+   *   parte di una transazione già aperta: usare il pool bloccherebbe la
+   *   riga contro i lock della transazione stessa.
+   */
+  public async updateQuizSuperati(
+    utenteId: number,
+    quizSuperati: number,
+    connection: Pool | PoolConnection = this.db,
+  ): Promise<void> {
+    await connection.query("UPDATE utente SET quiz_superati = ? WHERE id = ?", [
+      quizSuperati,
+      utenteId,
     ]);
   }
 
-  //metodo per trovare l'utente tramite l'id, usato per ora in SolvigemtoDao
-  public async getUtenteById(id: number): Promise<Utente | null> {
-    const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT * FROM utente WHERE id = ?",
+  /** Elimina l'utente; i dati collegati cadono per vincolo di integrità. */
+  public async delete(id: number): Promise<boolean> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      "DELETE FROM utente WHERE id = ?",
       [id],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Utente(
-        row.id,
-        row.email,
-        row.password,
-        row.nome,
-        row.cognome,
-        row.ruolo === "admin", // Converte la stringa in booleano
-        row.quiz_superati, // Include quizSuperati dal risultato della query
-      );
-    }
-    return null;
+    return esito.affectedRows > 0;
   }
 }

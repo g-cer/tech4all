@@ -1,128 +1,88 @@
-import { FieldPacket, Pool, RowDataPacket } from "mysql2/promise";
+import { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { Feedback } from "../entity/gestione_feedback/Feedback";
-import pool from "../../db"; // Importa il file di connessione al database
+import { getPool } from "../../db/pool";
 
+interface RigaFeedback extends RowDataPacket {
+  valutazione: number;
+  commento: string;
+  utente_id: number;
+  tutorial_id: number;
+  data_creazione: Date | null;
+}
+
+function toEntity(riga: RigaFeedback): Feedback {
+  return new Feedback(
+    riga.valutazione,
+    riga.commento,
+    riga.utente_id,
+    riga.tutorial_id,
+    riga.data_creazione,
+  );
+}
+
+/** Accesso alla tabella `feedback`. */
 export class FeedbackDao {
-  private db: Pool;
+  constructor(private readonly db: Pool = getPool()) {}
 
-  constructor() {
-    this.db = pool; // Utilizza il modulo di connessione al database
+  public async findByTutorial(tutorialId: number): Promise<Feedback[]> {
+    const [righe] = await this.db.query<RigaFeedback[]>(
+      "SELECT * FROM feedback WHERE tutorial_id = ? ORDER BY data_creazione DESC",
+      [tutorialId],
+    );
+    return righe.map(toEntity);
   }
 
-  // Metodo per ottenere tutti i feedback
-  public async getAllFeedback(): Promise<Feedback[]> {
-    const [rows] = await this.db.query<RowDataPacket[]>(
-      //aggiunta tipo RowDataPacket[] per evitare il problema di any nel map
-      "SELECT * FROM feedback",
+  public async findByUtente(utenteId: number): Promise<Feedback[]> {
+    const [righe] = await this.db.query<RigaFeedback[]>(
+      "SELECT * FROM feedback WHERE utente_id = ? ORDER BY data_creazione DESC",
+      [utenteId],
     );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Feedback(
-          row.valutazione,
-          row.commento,
-          row.utente_id,
-          row.tutorial_id,
-        ),
-    );
+    return righe.map(toEntity);
   }
 
-  // Metodo per ottenere un feedback specifico per utente e tutorial
-  public async getFeedback(
+  public async find(
     utenteId: number,
     tutorialId: number,
   ): Promise<Feedback | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
+    const [righe] = await this.db.query<RigaFeedback[]>(
       "SELECT * FROM feedback WHERE utente_id = ? AND tutorial_id = ?",
       [utenteId, tutorialId],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Feedback(
-        row.valutazione,
-        row.commento,
-        row.utente_id,
-        row.tutorial_id,
-      );
-    }
-    return null;
+    return righe.length > 0 ? toEntity(righe[0]) : null;
   }
 
-  // Metodo per creare un nuovo feedback
-  public async createFeedback(feedback: Feedback): Promise<void> {
-    const valutazione = feedback.getValutazione();
-    const commento = feedback.getCommento();
-    const idUtente = feedback.getUtenteId();
-    const idTutorial = feedback.getTutorialId();
+  public async create(feedback: Feedback): Promise<void> {
     await this.db.query(
-      "INSERT INTO feedback (valutazione, commento, utente_id, tutorial_id) VALUES (?, ?, ?, ?)",
-      [valutazione, commento, idUtente, idTutorial],
+      `INSERT INTO feedback (valutazione, commento, utente_id, tutorial_id)
+       VALUES (?, ?, ?, ?)`,
+      [
+        feedback.getValutazione(),
+        feedback.getCommento(),
+        feedback.getUtenteId(),
+        feedback.getTutorialId(),
+      ],
     );
   }
 
-  // Metodo per eliminare un feedback per utente e tutorial
-  public async deleteFeedback(
-    userId: number,
-    tutorialId: number,
-  ): Promise<void> {
+  public async update(feedback: Feedback): Promise<void> {
     await this.db.query(
+      `UPDATE feedback
+          SET valutazione = ?, commento = ?
+        WHERE utente_id = ? AND tutorial_id = ?`,
+      [
+        feedback.getValutazione(),
+        feedback.getCommento(),
+        feedback.getUtenteId(),
+        feedback.getTutorialId(),
+      ],
+    );
+  }
+
+  public async delete(utenteId: number, tutorialId: number): Promise<boolean> {
+    const [esito] = await this.db.query<ResultSetHeader>(
       "DELETE FROM feedback WHERE utente_id = ? AND tutorial_id = ?",
-      [userId, tutorialId],
+      [utenteId, tutorialId],
     );
-  }
-
-  //Metodo per trovare un feedback tramite l'id dell'utente
-
-  public async getFeedbackByUserId(userId: number): Promise<Feedback[]> {
-    const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT * FROM feedback WHERE utente_id = ?",
-      [userId],
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Feedback(
-          row.valutazione,
-          row.commento,
-          row.utente_id,
-          row.tutorial_id,
-        ),
-    );
-  }
-  //Metodo per trovare un feedback tramite l'id del tutorial
-  public async getFeedbackByTutorialId(
-    tutorialId: number,
-  ): Promise<Feedback[]> {
-    const [rows] = await this.db.query<RowDataPacket[]>(
-      "SELECT * FROM feedback WHERE tutorial_id = ?",
-      [tutorialId],
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Feedback(
-          row.valutazione,
-          row.commento,
-          row.utente_id,
-          row.tutorial_id,
-        ),
-    );
-  }
-  //Get Feedback da utente id e tutorialId getFeedbackByUserIdAndTutorialId
-  public async getFeedbackByUserIdAndTutorialId(
-    userId: number,
-    tutorialId: number,
-  ): Promise<Feedback | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM feedback WHERE utente_id = ? AND tutorial_id = ?",
-      [userId, tutorialId],
-    );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Feedback(
-        row.valutazione,
-        row.commento,
-        row.utente_id,
-        row.tutorial_id,
-      );
-    }
-    return null;
+    return esito.affectedRows > 0;
   }
 }

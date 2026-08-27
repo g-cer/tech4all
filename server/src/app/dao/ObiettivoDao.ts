@@ -1,75 +1,74 @@
-import { Pool, RowDataPacket, FieldPacket } from "mysql2/promise";
-import { Obiettivo } from "../entity/gestione_badge_obiettivi/Obiettivo";
-import pool from "../../db";
+import { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { Obiettivo } from "../entity/gestione_obiettivi/Obiettivo";
+import { getPool } from "../../db/pool";
 
+interface RigaObiettivo extends RowDataPacket {
+  nome: string;
+  descrizione: string;
+  grafica_badge: string;
+  quiz_da_superare: number;
+}
+
+function toEntity(riga: RigaObiettivo): Obiettivo {
+  return new Obiettivo(
+    riga.nome,
+    riga.descrizione,
+    riga.grafica_badge,
+    riga.quiz_da_superare,
+  );
+}
+
+/** Accesso alla tabella `obiettivo`. */
 export class ObiettivoDao {
-  private db: Pool;
+  constructor(private readonly db: Pool = getPool()) {}
 
-  constructor() {
-    this.db = pool; // Utilizza il modulo di connessione al database
+  public async findAll(): Promise<Obiettivo[]> {
+    const [righe] = await this.db.query<RigaObiettivo[]>(
+      "SELECT * FROM obiettivo ORDER BY quiz_da_superare",
+    );
+    return righe.map(toEntity);
   }
 
-  // Metodo per ottenere tutti gli obiettivi
-  public async getAllObiettivi(): Promise<Obiettivo[]> {
-    //le tuple richiedono sempre due elementi come definizione del tipo
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM obiettivo",
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Obiettivo(
-          row.nome,
-          row.descrizione,
-          row.grafica_badge,
-          row.quiz_da_superare,
-        ),
-    );
-  }
-
-  // Metodo per ottenere un obiettivo specifico per nome
-  public async getObiettivo(nome: string): Promise<Obiettivo | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
+  public async findByNome(nome: string): Promise<Obiettivo | null> {
+    const [righe] = await this.db.query<RigaObiettivo[]>(
       "SELECT * FROM obiettivo WHERE nome = ?",
       [nome],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Obiettivo(
-        row.nome,
-        row.descrizione,
-        row.grafica_badge,
-        row.quiz_da_superare,
-      );
-    }
-    return null;
+    return righe.length > 0 ? toEntity(righe[0]) : null;
   }
 
-  // Metodo per creare un nuovo obiettivo
-  public async createObiettivo(obiettivo: Obiettivo): Promise<void> {
-    const nome = obiettivo.getNome;
-    const descrizione = obiettivo.getDescrizione;
-    const grafica = obiettivo.getGraficaBadge;
-    const numeroQuiz = obiettivo.getQuizDaSuperare;
+  public async create(obiettivo: Obiettivo): Promise<void> {
     await this.db.query(
-      "INSERT INTO obiettivo (nome, descrizione, grafica_badge, quiz_da_superare) VALUES (?, ?, ?, ?)",
-      [nome, descrizione, grafica, numeroQuiz],
+      `INSERT INTO obiettivo (nome, descrizione, grafica_badge, quiz_da_superare)
+       VALUES (?, ?, ?, ?)`,
+      [
+        obiettivo.getNome(),
+        obiettivo.getDescrizione(),
+        obiettivo.getGraficaBadge(),
+        obiettivo.getQuizDaSuperare(),
+      ],
     );
   }
 
-  // Metodo per aggiornare un obiettivo esistente
-  public async updateObiettivo(obiettivo: Obiettivo): Promise<void> {
-    const nome = obiettivo.getNome;
-    const descrizione = obiettivo.getDescrizione;
-    const grafica = obiettivo.getGraficaBadge;
-    const numeroQuiz = obiettivo.getQuizDaSuperare;
+  public async update(obiettivo: Obiettivo): Promise<void> {
     await this.db.query(
-      "UPDATE obiettivo SET descrizione = ?, grafica_badge = ?, quiz_da_superare = ? WHERE nome = ?",
-      [nome, descrizione, grafica, numeroQuiz],
+      `UPDATE obiettivo
+          SET descrizione = ?, grafica_badge = ?, quiz_da_superare = ?
+        WHERE nome = ?`,
+      [
+        obiettivo.getDescrizione(),
+        obiettivo.getGraficaBadge(),
+        obiettivo.getQuizDaSuperare(),
+        obiettivo.getNome(),
+      ],
     );
   }
 
-  // Metodo per eliminare un obiettivo per nome
-  public async deleteObiettivo(nome: string): Promise<void> {
-    await this.db.query("DELETE FROM obiettivo WHERE nome = ?", [nome]);
+  public async delete(nome: string): Promise<boolean> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      "DELETE FROM obiettivo WHERE nome = ?",
+      [nome],
+    );
+    return esito.affectedRows > 0;
   }
 }

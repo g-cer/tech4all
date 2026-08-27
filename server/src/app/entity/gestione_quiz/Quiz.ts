@@ -1,46 +1,22 @@
 import { Domanda } from "./Domanda";
 
-/**
- * Represents a Quiz entity.
- */
+/** Quiz di verifica associato a un tutorial (relazione uno a uno). */
 export class Quiz {
   /**
-   * The unique identifier of the quiz.
+   * @param tutorialId Tutorial a cui il quiz è associato.
+   * @param domande Domande che compongono il quiz.
+   * @param id Identificativo assegnato dal database.
    */
-  private id?: number;
-  /**
-   * The identifier of the tutorial associated with the quiz.
-   */
-  private tutorialId: number;
-  /**
-   * The list of questions in the quiz.
-   */
-  private domande: Domanda[];
+  constructor(
+    private readonly tutorialId: number,
+    private domande: Domanda[],
+    private id?: number,
+  ) {}
 
-  /**
-   * Creates an instance of Quiz.
-   * @param tutorialId - The identifier of the tutorial associated with the quiz.
-   * @param id - The unique identifier of the quiz.
-   * @param domande - The list of questions in the quiz.
-   * @param risposte - The list of answers in the quiz.
-   */
-  constructor(tutorialId: number, domande: Domanda[], id?: number) {
-    this.tutorialId = tutorialId;
-    this.id = id;
-    this.domande = domande;
-  }
-
-  // Getter
-  /**
-   * Gets the unique identifier of the quiz.
-   */
   public getId(): number | undefined {
     return this.id;
   }
 
-  /**
-   * Gets the identifier of the tutorial associated with the quiz.
-   */
   public getTutorialId(): number {
     return this.tutorialId;
   }
@@ -49,25 +25,11 @@ export class Quiz {
     return this.domande;
   }
 
-  // Setter
-  /**
-   * Sets the unique identifier of the quiz.
-   */
-  public setId(value: number | undefined) {
+  public setId(value: number): void {
     this.id = value;
   }
 
-  /**
-   * Sets the identifier of the tutorial associated with the quiz.
-   */
-  public setTutorialId(value: number) {
-    this.tutorialId = value;
-  }
-
-  /**
-   * Sets the list of questions in the quiz.
-   */
-  public setDomande(value: Domanda[]) {
+  public setDomande(value: Domanda[]): void {
     this.domande = value;
   }
 }

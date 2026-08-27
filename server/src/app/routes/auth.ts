@@ -1,74 +1,117 @@
-import express from "express";
+import { Router } from "express";
+import { body } from "express-validator";
 import { AutenticazioneService } from "../services/AutenticazioneService";
+import { asyncHandler } from "../middleware/asyncHandler";
+import { validate } from "../middleware/validate";
+import {
+  firmaToken,
+  impostaCookieSessione,
+  rimuoviCookieSessione,
+  requireAuth,
+  utenteCorrente,
+} from "../middleware/auth";
+import { AccountService } from "../services/AccountService";
+import { toUtenteDTO } from "../dto";
+import { MESSAGGIO_PASSWORD, UTENTE } from "../validation/regole";
 
-const router = express.Router();
+/**
+ * Rotte di autenticazione.
+ *
+ * @param autenticazioneService Servizio di autenticazione.
+ * @param accountService Servizio account, usato da `GET /auth/me`.
+ */
+export function creaAuthRouter(
+  autenticazioneService: AutenticazioneService,
+  accountService: AccountService,
+): Router {
+  const router = Router();
 
-// Login
-router.post("/login", async (req, res) => {
-  console.log("Richiesta ricevuta:", req.body);
-  const { email, password } = req.body;
-  try {
-    const loginService = new AutenticazioneService();
-    const user = await loginService.login(email, password);
+  router.post(
+    "/registrazione",
+    body("email")
+      .isEmail()
+      .withMessage("Formato email non valido.")
+      .isLength({ min: UTENTE.emailMin, max: UTENTE.emailMax })
+      .withMessage("Lunghezza email non valida.")
+      .normalizeEmail(),
+    body("password")
+      .isString()
+      .bail()
+      .notEmpty()
+      .withMessage(MESSAGGIO_PASSWORD),
+    body("nome")
+      .trim()
+      .isLength({ min: UTENTE.nomeMin, max: UTENTE.nomeMax })
+      .withMessage("Lunghezza del nome non valida.")
+      .matches(UTENTE.nomeRegex)
+      .withMessage("Il nome contiene caratteri non ammessi."),
+    body("cognome")
+      .trim()
+      .isLength({ min: UTENTE.nomeMin, max: UTENTE.nomeMax })
+      .withMessage("Lunghezza del cognome non valida.")
+      .matches(UTENTE.nomeRegex)
+      .withMessage("Il cognome contiene caratteri non ammessi."),
+    validate,
+    asyncHandler(async (req, res) => {
+      const utente = await autenticazioneService.registra({
+        email: req.body.email,
+        password: req.body.password,
+        nome: req.body.nome,
+        cognome: req.body.cognome,
+      });
+      res.status(201).json(toUtenteDTO(utente));
+    }),
+  );
 
-    if (user.success) {
-      res
-        .status(200)
-        .json({ message: "Login effettuato con successo", user: user.user });
-    } else {
-      res.status(401).json({ message: user.message });
-    }
-  } catch (error) {
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
+  router.post(
+    "/login",
+    body("email")
+      .isString()
+      .bail()
+      .notEmpty()
+      .withMessage("Email obbligatoria."),
+    body("password")
+      .isString()
+      .bail()
+      .notEmpty()
+      .withMessage("Password obbligatoria."),
+    validate,
+    asyncHandler(async (req, res) => {
+      const utente = await autenticazioneService.login(
+        req.body.email,
+        req.body.password,
+      );
+      impostaCookieSessione(res, firmaToken(utente));
+      res.status(200).json(toUtenteDTO(utente));
+    }),
+  );
 
-// Registrazione
+  router.post("/logout", (_req, res) => {
+    rimuoviCookieSessione(res);
+    res.status(204).send();
+  });
 
-router.post("/register", async (req, res) => {
-  const { email, password, nome, cognome } = req.body;
-  try {
-    const registrazioneService = new AutenticazioneService();
-    const user = await registrazioneService.registraUtente(
-      email,
-      password,
-      nome,
-      cognome,
-    );
-    res.status(201).json({ message: "Utente registrato con successo", user });
-  } catch (error) {
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
+  /** Profilo dell'utente della sessione corrente. */
+  router.get(
+    "/me",
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      const { id } = utenteCorrente(req);
+      const utente = await accountService.getUtente(id);
+      res.status(200).json(toUtenteDTO(utente));
+    }),
+  );
 
-// Logout
-router.post("/logout", async (req, res) => {
-  const { userId } = req.body; // Supponiamo che l'ID utente venga passato nel body
-  try {
-    const autenticazioneService = new AutenticazioneService();
-    const result = await autenticazioneService.logout(userId);
+  /** Disponibilità di un'email, per la validazione in tempo reale del form. */
+  router.get(
+    "/email-disponibile",
+    asyncHandler(async (req, res) => {
+      const email = String(req.query.email ?? "");
+      const esiste =
+        email.length > 0 && (await autenticazioneService.emailEsiste(email));
+      res.status(200).json({ disponibile: !esiste });
+    }),
+  );
 
-    if (result.success) {
-      res.status(200).json({ message: result.message });
-    } else {
-      res.status(400).json({ message: result.message });
-    }
-  } catch (error) {
-    console.error("Errore durante il logout:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-// Check Email
-router.post("/check-email", async (req, res) => {
-  const { email } = req.body;
-  try {
-    const autenticazioneService = new AutenticazioneService();
-    const emailExists = await autenticazioneService.checkEmailExists(email);
-    res.status(200).json({ exists: emailExists });
-  } catch (error) {
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-export default router;
+  return router;
+}

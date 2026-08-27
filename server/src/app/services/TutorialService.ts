@@ -1,143 +1,142 @@
 import { TutorialDao } from "../dao/TutorialDao";
 import { Tutorial } from "../entity/gestione_tutorial/Tutorial";
-import { Categoria } from "../entity/gestione_tutorial/Categoria";
+import {
+  CATEGORIE,
+  Categoria,
+  isCategoria,
+} from "../entity/gestione_tutorial/Categoria";
+import { NotFoundError, ValidationError } from "../errors/AppError";
+import { TUTORIAL } from "../validation/regole";
+import { sanificaHtmlTutorial } from "../validation/sanitize";
 
+/** Dati di creazione o aggiornamento di un tutorial. */
+export interface DatiTutorial {
+  titolo: string;
+  grafica: string;
+  testo: string;
+  categoria: string;
+}
+
+/** Creazione, aggiornamento e consultazione del catalogo dei tutorial. */
 export class TutorialService {
-  private tutorialDao: TutorialDao;
+  constructor(private readonly tutorialDao: TutorialDao = new TutorialDao()) {}
 
-  constructor() {
-    this.tutorialDao = new TutorialDao();
+  /**
+   * Catalogo dei tutorial, opzionalmente ristretto a una categoria.
+   *
+   * @throws ValidationError se la categoria indicata non esiste.
+   */
+  public async getTutorials(categoria?: string): Promise<Tutorial[]> {
+    if (categoria === undefined || categoria === "") {
+      return this.tutorialDao.findAll();
+    }
+    return this.tutorialDao.findByCategoria(this.validaCategoria(categoria));
   }
 
-  // Creazione di un nuovo tutorial
-  async creazioneTutorial(
-    tutorial: Tutorial
-  ): Promise<{ success: boolean; message: string }> {
-    try {
-      // Validazione Titolo
-      const titolo = tutorial.getTitolo();
+  /**
+   * @throws NotFoundError se il tutorial non esiste.
+   */
+  public async getTutorial(id: number): Promise<Tutorial> {
+    const tutorial = await this.tutorialDao.findById(id);
+    if (!tutorial) {
+      throw new NotFoundError("Tutorial non trovato.");
+    }
+    return tutorial;
+  }
 
-      if (titolo.length < 5 || titolo.length > 100) {
-        return {
-          success: false,
-          message: "Il titolo deve avere tra i 5 e i 100 caratteri.",
-        };
-      }
-      if (!/^[a-zA-ZÀ-ÿ0-9][a-zA-Zà-ÿ0-9\s-:'-]*$/.test(titolo)) {
-        return {
-          success: false,
-          message: "Il titolo contiene caratteri non validi.",
-        };
-      }
+  /** Ricerca per parola chiave su titolo, testo e categoria. */
+  public async cercaTutorial(parolaChiave: string): Promise<Tutorial[]> {
+    const chiave = parolaChiave.trim();
+    if (chiave.length === 0) {
+      return [];
+    }
+    return this.tutorialDao.search(chiave);
+  }
 
-      // Validazione Grafica
-      const grafica = tutorial.getGrafica();
-      if (!/\.(png|jpg|jpeg|webp)$/i.test(grafica)) {
-        return {
-          success: false,
-          message:
-            "Il formato della foto non è valido. Sono ammessi solo i formati png, jpg, jpeg, webp.",
-        };
-      }
+  /**
+   * Crea un tutorial. Il corpo HTML viene sanificato prima della persistenza.
+   *
+   * @throws ValidationError se uno dei campi non rispetta i vincoli di dominio.
+   */
+  public async creaTutorial(dati: DatiTutorial): Promise<Tutorial> {
+    const categoria = this.validaCategoria(dati.categoria);
+    this.validaContenuto(dati);
 
-      // Validazione Testo
-      const testo = tutorial.getTesto();
-      if (testo.length < 20 || testo.length > 65535) {
-        return {
-          success: false,
-          message: "Il testo deve avere tra i 20 e i 65.535 caratteri.",
-        };
-      }
+    return this.tutorialDao.create(
+      new Tutorial(
+        undefined,
+        dati.titolo.trim(),
+        dati.grafica,
+        sanificaHtmlTutorial(dati.testo),
+        categoria,
+      ),
+    );
+  }
 
-      // Validazione Categoria
-      const categoria = tutorial.getCategoria();
-      const categorieValide = Object.values(Categoria);
+  /**
+   * Aggiorna un tutorial esistente.
+   *
+   * @throws NotFoundError se il tutorial non esiste.
+   * @throws ValidationError se uno dei campi non rispetta i vincoli di dominio.
+   */
+  public async aggiornaTutorial(
+    id: number,
+    dati: DatiTutorial,
+  ): Promise<Tutorial> {
+    const tutorial = await this.getTutorial(id);
+    const categoria = this.validaCategoria(dati.categoria);
+    this.validaContenuto(dati);
 
-      if (!categorieValide.includes(categoria as Categoria)) {
-        return {
-          success: false,
-          message: `La categoria inserita non è valida. Le categorie valide sono: ${categorieValide.join(
-            ", "
-          )}.`,
-        };
-      }
+    tutorial.setTitolo(dati.titolo.trim());
+    tutorial.setGrafica(dati.grafica);
+    tutorial.setTesto(sanificaHtmlTutorial(dati.testo));
+    tutorial.setCategoria(categoria);
 
-      // Creazione tutorial
-      await this.tutorialDao.createTutorial(tutorial);
-      return {
-        success: true,
-        message: "Tutorial creato con successo.",
-      };
-    } catch (error) {
-      console.error("Errore durante la creazione del tutorial:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+    await this.tutorialDao.update(tutorial);
+    return tutorial;
+  }
+
+  /**
+   * @throws NotFoundError se il tutorial non esiste.
+   */
+  public async eliminaTutorial(id: number): Promise<void> {
+    const eliminato = await this.tutorialDao.delete(id);
+    if (!eliminato) {
+      throw new NotFoundError("Tutorial non trovato.");
     }
   }
 
-  // Eliminazione di un tutorial
-  async cancellazioneTutorial(
-    id: number
-  ): Promise<{ success: boolean; message: string }> {
-    try {
-      await this.tutorialDao.deleteTutorial(id);
-      return {
-        success: true,
-        message: "Tutorial eliminato con successo.",
-      };
-    } catch (error) {
-      console.error("Errore durante l'eliminazione del tutorial:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+  private validaCategoria(valore: string): Categoria {
+    if (!isCategoria(valore)) {
+      throw new ValidationError(
+        `Categoria non valida. Valori ammessi: ${CATEGORIE.join(", ")}.`,
+      );
     }
+    return valore;
   }
 
-  // Visualizzazione della lista di tutti i tutorial
-  async visualizzazioneListaTutorial(): Promise<Tutorial[]> {
-    try {
-      return await this.tutorialDao.getAllTutorials();
-    } catch (error) {
-      console.error("Errore durante la visualizzazione dei tutorial:", error);
-      throw new Error("Errore interno del server.");
+  private validaContenuto(dati: DatiTutorial): void {
+    const titolo = dati.titolo?.trim() ?? "";
+    if (
+      titolo.length < TUTORIAL.titoloMin ||
+      titolo.length > TUTORIAL.titoloMax
+    ) {
+      throw new ValidationError(
+        `Il titolo deve avere tra ${TUTORIAL.titoloMin} e ${TUTORIAL.titoloMax} caratteri.`,
+      );
     }
-  }
 
-  // Visualizzazione di un tutorial specifico
-  async visualizzazioneTutorial(id: number): Promise<Tutorial | null> {
-    try {
-      return await this.tutorialDao.getTutorialById(id);
-    } catch (error) {
-      console.error("Errore durante la visualizzazione del tutorial:", error);
-      throw new Error("Errore interno del server.");
+    if (!TUTORIAL.graficaRegex.test(dati.grafica ?? "")) {
+      throw new ValidationError(
+        "Formato immagine non valido. Sono ammessi png, jpg, jpeg e webp.",
+      );
     }
-  }
 
-  // Metodo per la ricerca di tutorial basata su una parola chiave
-  async ricercaTutorial(parolaChiave: string): Promise<Tutorial[]> {
-    try {
-      return await this.tutorialDao.searchTutorials(parolaChiave);
-    } catch (error) {
-      console.error("Errore durante la ricerca dei tutorial:", error);
-      throw new Error("Errore interno del server.");
-    }
-  }
-
-  // Filtro tutorial per categoria
-  async filtroTutorial(categoria?: string): Promise<Tutorial[]> {
-    try {
-      if (categoria) {
-        // Filtra direttamente dal database per categoria
-        return await this.tutorialDao.getTutorialsByCategoria(categoria);
-      }
-      // Se nessun parametro è fornito, restituisce tutti i tutorial
-      return await this.tutorialDao.getAllTutorials();
-    } catch (error) {
-      console.error("Errore durante il filtraggio dei tutorial:", error);
-      throw new Error("Errore interno del server.");
+    const testo = dati.testo ?? "";
+    if (testo.length < TUTORIAL.testoMin || testo.length > TUTORIAL.testoMax) {
+      throw new ValidationError(
+        `Il testo deve avere tra ${TUTORIAL.testoMin} e ${TUTORIAL.testoMax} caratteri.`,
+      );
     }
   }
 }

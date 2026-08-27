@@ -1,286 +1,283 @@
 import { QuizDao } from "../dao/QuizDao";
-import { DomandaDao } from "../dao/DomandaDao";
-import { RispostaDao } from "../dao/RispostaDao";
+import { SvolgimentoDao } from "../dao/SvolgimentoDao";
+import { UtenteDao } from "../dao/UtenteDao";
+import { TutorialDao } from "../dao/TutorialDao";
+import { ObiettivoService } from "./ObiettivoService";
 import { Quiz } from "../entity/gestione_quiz/Quiz";
 import { Domanda } from "../entity/gestione_quiz/Domanda";
 import { Risposta } from "../entity/gestione_quiz/Risposta";
-import { SvolgimentoDao } from "../dao/SvolgimentoDao";
 import { Svolgimento } from "../entity/gestione_quiz/Svolgimento";
-import { Utente } from "../entity/gestione_autenticazione/Utente";
-import { UtenteDao } from "../dao/UtenteDao";
+import { Obiettivo } from "../entity/gestione_obiettivi/Obiettivo";
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from "../errors/AppError";
+import { QUIZ } from "../validation/regole";
+import { withTransaction } from "../../db/pool";
 
+/** Domanda inviata dal client in creazione o aggiornamento di un quiz. */
+export interface DatiDomanda {
+  testo: string;
+  risposte: { testo: string; corretta: boolean }[];
+}
+
+/** Risposta data dall'utente a una specifica domanda. */
+export interface RispostaFornita {
+  domandaId: number;
+  rispostaId: number;
+}
+
+/** Esito della correzione di un quiz. */
+export interface EsitoSvolgimento {
+  esito: boolean;
+  risposteEsatte: number;
+  totaleDomande: number;
+  soluzioni: { domandaId: number; rispostaCorrettaId: number }[];
+  obiettiviSbloccati: Obiettivo[];
+}
+
+/**
+ * Gestione dei quiz e della loro correzione.
+ *
+ * La correzione avviene esclusivamente qui: il client riceve il quiz privo
+ * delle soluzioni e le ottiene solo dopo aver consegnato le proprie risposte.
+ */
 export class QuizService {
-  private quizDao: QuizDao;
-  private domandaDao: DomandaDao;
-  private rispostaDao: RispostaDao;
-  private svolgimentoDao: SvolgimentoDao;
-  private utenteDao: UtenteDao;
+  constructor(
+    private readonly quizDao: QuizDao = new QuizDao(),
+    private readonly svolgimentoDao: SvolgimentoDao = new SvolgimentoDao(),
+    private readonly utenteDao: UtenteDao = new UtenteDao(),
+    private readonly tutorialDao: TutorialDao = new TutorialDao(),
+    private readonly obiettivoService: ObiettivoService = new ObiettivoService(),
+  ) {}
 
-  constructor() {
-    this.quizDao = new QuizDao();
-    this.domandaDao = new DomandaDao();
-    this.rispostaDao = new RispostaDao();
-    this.utenteDao = new UtenteDao();
-    this.svolgimentoDao = new SvolgimentoDao(this.quizDao, this.utenteDao);
+  /**
+   * Quiz associato a un tutorial.
+   *
+   * @throws NotFoundError se il tutorial non ha un quiz.
+   */
+  public async getQuizPerTutorial(tutorialId: number): Promise<Quiz> {
+    const quiz = await this.quizDao.findByTutorial(tutorialId);
+    if (!quiz) {
+      throw new NotFoundError("Nessun quiz associato a questo tutorial.");
+    }
+    return quiz;
   }
-  async creaQuiz(quiz: Quiz): Promise<{ success: boolean; message: string }> {
-    try {
-      // 1. Validazione delle domande
-      for (const domanda of quiz.getDomande()) {
-        if (domanda.getDomanda().length < 2) {
-          return {
-            success: false,
-            message:
-              "La lunghezza della domanda non è valida (minimo 2 caratteri).",
-          };
-        }
-        if (domanda.getDomanda().length > 255) {
-          return {
-            success: false,
-            message:
-              "La lunghezza della domanda non è valida (massimo 255 caratteri).",
-          };
-        }
-        for (const risposta of domanda.getRisposte()) {
-          const testoRisposta = risposta.getRisposta();
-          if (testoRisposta.length < 2) {
-            return {
-              success: false,
-              message:
-                "La lunghezza della risposta non è valida (minimo 2 caratteri).",
-            };
-          }
-          if (testoRisposta.length > 255) {
-            return {
-              success: false,
-              message:
-                "La lunghezza della risposta non è valida (massimo 255 caratteri).",
-            };
-          }
-        }
-      }
 
-      // 2. Creazione del quiz
-      await this.quizDao.createQuiz(quiz);
+  /**
+   * Crea il quiz di un tutorial. Quiz, domande e risposte sono inseriti in
+   * un'unica transazione: un fallimento parziale non lascia quiz incompleti.
+   *
+   * @throws NotFoundError se il tutorial non esiste.
+   * @throws ConflictError se il tutorial ha già un quiz.
+   * @throws ValidationError se le domande non rispettano i vincoli di dominio.
+   */
+  public async creaQuiz(
+    tutorialId: number,
+    domande: DatiDomanda[],
+  ): Promise<Quiz> {
+    const tutorial = await this.tutorialDao.findById(tutorialId);
+    if (!tutorial) {
+      throw new NotFoundError("Tutorial non trovato.");
+    }
 
-      // 3. Creazione delle domande associate al quiz
-      for (const domanda of quiz.getDomande()) {
-        await this.domandaDao.createDomanda(domanda, quiz.getId());
+    const esistente = await this.quizDao.findByTutorial(tutorialId);
+    if (esistente) {
+      throw new ConflictError("Questo tutorial ha già un quiz associato.");
+    }
 
-        // 4. Creazione delle risposte per ogni domanda
-        for (const risposta of domanda.getRisposte()) {
-          await this.rispostaDao.createRisposta(risposta, domanda.getId());
-        }
-      }
+    const quiz = new Quiz(tutorialId, this.costruisciDomande(domande));
+    await withTransaction((connection) =>
+      this.quizDao.create(quiz, connection),
+    );
+    return quiz;
+  }
 
-      return {
-        success: true,
-        message: "Quiz creato con successo con tutte le domande e risposte.",
-      };
-    } catch (error) {
-      console.error("Errore durante la creazione del quiz:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+  /**
+   * Sostituisce integralmente le domande di un quiz esistente.
+   *
+   * Gli svolgimenti pregressi restano validi: si riferiscono al quiz, non
+   * alle singole domande, e vengono ricalcolati al prossimo tentativo.
+   *
+   * @throws NotFoundError se il quiz non esiste.
+   * @throws ValidationError se le domande non rispettano i vincoli di dominio.
+   */
+  public async aggiornaQuiz(
+    quizId: number,
+    domande: DatiDomanda[],
+  ): Promise<Quiz> {
+    const quiz = await this.quizDao.findById(quizId);
+    if (!quiz) {
+      throw new NotFoundError("Quiz non trovato.");
+    }
+
+    const nuoveDomande = this.costruisciDomande(domande);
+    await withTransaction((connection) =>
+      this.quizDao.replaceDomande(quizId, nuoveDomande, connection),
+    );
+    quiz.setDomande(nuoveDomande);
+    return quiz;
+  }
+
+  /**
+   * @throws NotFoundError se il quiz non esiste.
+   */
+  public async eliminaQuiz(quizId: number): Promise<void> {
+    const eliminato = await this.quizDao.delete(quizId);
+    if (!eliminato) {
+      throw new NotFoundError("Quiz non trovato.");
     }
   }
 
-  // Eliminazione di un quiz (e relative domande e risposte)
-  async eliminaQuiz(
-    id: number,
-  ): Promise<{ success: boolean; message: string }> {
-    try {
-      const quiz = await this.quizDao.getQuizById(id);
-      if (!quiz) {
-        return {
-          success: false,
-          message: "Quiz non trovato.",
-        };
-      }
-
-      // 1. Eliminare le risposte associate a tutte le domande del quiz
-      const domande = await this.domandaDao.getAllDomande();
-      for (const domanda of domande) {
-        if (domanda.getQuizId() === id) {
-          const risposte = domanda.getRisposte();
-          for (const risposta of risposte) {
-            await this.rispostaDao.deleteRisposta(risposta.getId()!);
-          }
-          // 2. Eliminare le domande del quiz
-          await this.domandaDao.deleteDomanda(domanda.getId()!);
-        }
-      }
-
-      // 3. Eliminare il quiz
-      await this.quizDao.deleteQuiz(id);
-
-      return {
-        success: true,
-        message: "Quiz e relative domande e risposte eliminati con successo.",
-      };
-    } catch (error) {
-      console.error("Errore durante l'eliminazione del quiz:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
-    }
-  }
-
-  // Esecuzione del quiz (per un utente specifico)
-  async eseguiQuiz(
+  /**
+   * Corregge le risposte di un utente, registra lo svolgimento e assegna
+   * gli eventuali badge sbloccati.
+   *
+   * Il conteggio dei quiz superati è ricavato dagli svolgimenti registrati,
+   * non incrementato a mano: resta corretto anche se lo stesso quiz viene
+   * ripetuto più volte.
+   *
+   * @throws NotFoundError se il quiz o l'utente non esistono.
+   * @throws ValidationError se il quiz non contiene domande.
+   */
+  public async eseguiQuiz(
     quizId: number,
     utenteId: number,
-    risposteFornite: number[], // Lista di ID delle risposte scelte dall'utente
-  ): Promise<{ success: boolean; message: string; esito: boolean }> {
-    if (!utenteId || utenteId <= 0) {
-      console.error("ID utente non valido");
-      throw new Error("ID utente non valido");
+    risposteFornite: RispostaFornita[],
+  ): Promise<EsitoSvolgimento> {
+    const quiz = await this.quizDao.findById(quizId);
+    if (!quiz) {
+      throw new NotFoundError("Quiz non trovato.");
     }
-    if (!quizId || quizId <= 0) {
-      console.error("ID quiz non valido");
-      throw new Error("Quiz non trovato");
+
+    const utente = await this.utenteDao.findById(utenteId);
+    if (!utente) {
+      throw new NotFoundError("Utente non trovato.");
     }
-    try {
-      const quiz = await this.quizDao.getQuizById(quizId);
-      if (!quiz) {
-        return {
-          success: false,
-          message: "Quiz non trovato.",
-          esito: false,
-        };
+
+    const domande = quiz.getDomande();
+    if (domande.length === 0) {
+      throw new ValidationError("Il quiz non contiene domande.");
+    }
+
+    // Le risposte sono associate per identificativo e non per posizione:
+    // l'ordine con cui il client le invia è irrilevante.
+    const sceltePerDomanda = new Map(
+      risposteFornite.map((r) => [r.domandaId, r.rispostaId]),
+    );
+
+    const soluzioni: EsitoSvolgimento["soluzioni"] = [];
+    let risposteEsatte = 0;
+
+    for (const domanda of domande) {
+      const corretta = domanda.getRispostaCorretta();
+      if (!corretta) {
+        continue;
       }
-
-      // Recupero delle domande associate al quiz
-      const domande = quiz.getDomande();
-
-      // Calcolare le risposte corrette
-      let risposteEsatte = 0;
-      for (let i = 0; i < domande.length; i++) {
-        const domanda = domande[i];
-        const rispostaCorretta = domanda
-          .getRisposte()
-          .find((risposta) => risposta.getCorretta());
-
-        // Controlla se la risposta fornita dall'utente è corretta
-        if (
-          rispostaCorretta &&
-          rispostaCorretta.getId() === risposteFornite[i]
-        ) {
-          risposteEsatte++;
-        }
+      const domandaId = domanda.getId() as number;
+      soluzioni.push({
+        domandaId,
+        rispostaCorrettaId: corretta.getId() as number,
+      });
+      if (sceltePerDomanda.get(domandaId) === corretta.getId()) {
+        risposteEsatte += 1;
       }
+    }
 
-      // Determina se il quiz è stato superato (ad esempio, almeno 70% di risposte corrette)
-      const esito = risposteEsatte / domande.length >= 0.7;
+    const esito = risposteEsatte / domande.length >= QUIZ.sogliaSuperamento;
 
-      // Recupera l'utente dall'utenteId
-      const utente = await this.utenteDao.getUtenteById(utenteId);
-      if (!utente) {
-        return {
-          success: false,
-          message: "Utente non trovato.",
-          esito: false,
-        };
-      }
+    const obiettiviSbloccati = await withTransaction(async (connection) => {
+      const precedente = await this.svolgimentoDao.find(quizId, utenteId);
 
-      // Verifica se esiste già uno svolgimento per questo quiz e utente
-      let svolgimento = await this.svolgimentoDao.getSvolgimento(
-        quizId,
-        utenteId,
-      );
-
-      if (svolgimento) {
-        // Verifica se il quiz è già stato superato
-        if (!svolgimento.getEsito()) {
-          // Aggiorna lo svolgimento esistente solo se non è stato superato
-          svolgimento.setEsito(esito);
-          svolgimento.setDataConseguimento(new Date());
-          svolgimento.setRisposteEsatte(risposteEsatte);
-          await this.svolgimentoDao.updateSvolgimento(svolgimento);
-
-          if (esito) {
-            utente.setQuizSuperati(utente.getQuizSuperati() + 1);
-            await this.utenteDao.updateQuizSuperati(utente);
-          }
-        }
-      } else {
-        // Crea un nuovo svolgimento
-        svolgimento = new Svolgimento(
-          quiz,
-          utente,
-          esito,
-          new Date(),
-          risposteEsatte,
+      // Un quiz già superato non viene declassato da un tentativo peggiore.
+      if (!precedente?.getEsito()) {
+        await this.svolgimentoDao.save(
+          new Svolgimento(quizId, utenteId, esito, new Date(), risposteEsatte),
+          connection,
         );
-        await this.svolgimentoDao.createSvolgimento(svolgimento);
-
-        if (esito) {
-          utente.setQuizSuperati(utente.getQuizSuperati() + 1);
-          await this.utenteDao.updateQuizSuperati(utente);
-        }
       }
 
-      return {
-        success: true,
-        message: "Quiz eseguito con successo.",
-        esito: esito,
-      };
-    } catch (error) {
-      console.error("Errore durante l'esecuzione del quiz:", error);
-      return {
-        success: false,
-        message: "Errore durante l'esecuzione del quiz.",
-        esito: false,
-      };
-    }
+      const quizSuperati = await this.svolgimentoDao.contaQuizSuperati(
+        utenteId,
+        connection,
+      );
+      if (quizSuperati !== utente.getQuizSuperati()) {
+        await this.utenteDao.updateQuizSuperati(
+          utenteId,
+          quizSuperati,
+          connection,
+        );
+        utente.setQuizSuperati(quizSuperati);
+      }
+
+      return this.obiettivoService.valutaConseguimenti(
+        utenteId,
+        quizSuperati,
+        connection,
+      );
+    });
+
+    return {
+      esito,
+      risposteEsatte,
+      totaleDomande: domande.length,
+      soluzioni,
+      obiettiviSbloccati,
+    };
   }
 
-  // recupera quiz per tutorial id
-  async getQuizByTutorialId(
-    tutorialId: number | null | undefined,
-  ): Promise<Quiz> {
-    if (tutorialId === null || tutorialId === undefined || tutorialId <= 0) {
-      console.error("ID tutorial obbligatorio");
-      throw new Error("ID tutorial obbligatorio");
+  /**
+   * Valida le domande ricevute e le trasforma in entità di dominio.
+   *
+   * @throws ValidationError alla prima violazione riscontrata.
+   */
+  private costruisciDomande(domande: DatiDomanda[]): Domanda[] {
+    if (!Array.isArray(domande) || domande.length < QUIZ.domandeMin) {
+      throw new ValidationError(
+        `Il quiz deve contenere almeno ${QUIZ.domandeMin} domanda.`,
+      );
     }
-    try {
-      const quiz = await this.quizDao.getQuizByTutorialId(tutorialId);
 
-      if (!quiz) {
-        throw new Error("Quiz non trovato"); // Lancia un errore se il quiz non esiste
+    return domande.map((domanda) => {
+      const testo = domanda.testo?.trim() ?? "";
+      if (testo.length < QUIZ.domandaMin || testo.length > QUIZ.domandaMax) {
+        throw new ValidationError(
+          `La domanda deve avere tra ${QUIZ.domandaMin} e ${QUIZ.domandaMax} caratteri.`,
+        );
       }
 
-      const domande = quiz.getDomande().map((domanda) => {
-        const risposte = domanda
-          .getRisposte()
-          .map(
-            (risposta) =>
-              new Risposta(
-                risposta.getRisposta(),
-                risposta.getCorretta(),
-                risposta.getDomandaId(),
-                risposta.getId(),
-              ),
-          );
-        return new Domanda(
-          domanda.getDomanda(),
-          risposte,
-          domanda.getQuizId(),
-          domanda.getId(),
+      const risposte = domanda.risposte ?? [];
+      if (
+        risposte.length < QUIZ.risposteMin ||
+        risposte.length > QUIZ.risposteMax
+      ) {
+        throw new ValidationError(
+          `Ogni domanda deve avere tra ${QUIZ.risposteMin} e ${QUIZ.risposteMax} risposte.`,
         );
-      });
+      }
 
-      quiz.setDomande(domande);
-      return quiz;
-    } catch (error) {
-      // Gestione degli errori più esplicita
-      console.error(
-        "Errore durante il recupero del quiz:",
-        error instanceof Error ? error.message : error,
+      if (risposte.filter((r) => r.corretta).length !== 1) {
+        throw new ValidationError(
+          "Ogni domanda deve avere esattamente una risposta corretta.",
+        );
+      }
+
+      return new Domanda(
+        testo,
+        risposte.map((risposta) => {
+          const testoRisposta = risposta.testo?.trim() ?? "";
+          if (
+            testoRisposta.length < QUIZ.rispostaMin ||
+            testoRisposta.length > QUIZ.rispostaMax
+          ) {
+            throw new ValidationError(
+              `Ogni risposta deve avere tra ${QUIZ.rispostaMin} e ${QUIZ.rispostaMax} caratteri.`,
+            );
+          }
+          return new Risposta(testoRisposta, risposta.corretta === true);
+        }),
       );
-      throw new Error("Impossibile recuperare il quiz"); // Lancia un errore generico al chiamante
-    }
+    });
   }
 }

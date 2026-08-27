@@ -1,76 +1,111 @@
-// Importazione delle entità e dei DAO
-import { Utente } from "../entity/gestione_autenticazione/Utente";
+import bcrypt from "bcrypt";
 import { UtenteDao } from "../dao/UtenteDao";
+import { Utente } from "../entity/gestione_autenticazione/Utente";
+import {
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+  ValidationError,
+} from "../errors/AppError";
+import { MESSAGGIO_PASSWORD, UTENTE } from "../validation/regole";
+import { env } from "../../config/env";
 
+/** Modifiche applicabili al proprio profilo. I campi assenti restano invariati. */
+export interface DatiAggiornamentoProfilo {
+  nome?: string;
+  cognome?: string;
+  email?: string;
+  passwordAttuale?: string;
+  nuovaPassword?: string;
+}
+
+/** Gestione dei dati anagrafici e del ciclo di vita degli account. */
 export class AccountService {
-  private utenteDao: UtenteDao;
+  constructor(private readonly utenteDao: UtenteDao = new UtenteDao()) {}
 
-  constructor() {
-    this.utenteDao = new UtenteDao();
+  /**
+   * @throws NotFoundError se l'utente non esiste.
+   */
+  public async getUtente(id: number): Promise<Utente> {
+    const utente = await this.utenteDao.findById(id);
+    if (!utente) {
+      throw new NotFoundError("Utente non trovato.");
+    }
+    return utente;
+  }
+
+  /** Elenco completo degli utenti registrati. Riservato agli amministratori. */
+  public async getUtenti(): Promise<Utente[]> {
+    return this.utenteDao.findAll();
   }
 
   /**
-   * Metodo per visualizzare i dati dell'utente.
-   * @param userId - ID dell'utente.
-   * @returns Una promessa che risolve un oggetto con i dati dell'utente o un messaggio di errore.
+   * Aggiorna il profilo dell'utente indicato.
+   *
+   * Il cambio password richiede quella attuale: senza questa verifica una
+   * sessione rubata permetterebbe di prendere possesso dell'account.
+   *
+   * @throws NotFoundError se l'utente non esiste.
+   * @throws ValidationError se la nuova password non rispetta la politica.
+   * @throws UnauthorizedError se la password attuale non è corretta.
+   * @throws ConflictError se la nuova email è già in uso.
    */
-  async visualizzaDati(
-    userId: number,
-  ): Promise<{ success: boolean; utente?: Utente; message?: string }> {
-    try {
-      if (!userId) {
-        return {
-          success: false,
-          message: "ID utente obbligatorio.",
-        };
-      }
+  public async aggiornaProfilo(
+    id: number,
+    dati: DatiAggiornamentoProfilo,
+  ): Promise<Utente> {
+    const utente = await this.getUtente(id);
 
-      const utente = await this.utenteDao.getUtenteById(userId);
-      if (!utente) {
-        return {
-          success: false,
-          message: "Utente non trovato.",
-        };
+    if (dati.email && dati.email !== utente.getEmail()) {
+      const occupata = await this.utenteDao.findByEmail(dati.email);
+      if (occupata) {
+        throw new ConflictError("Email già in uso.");
       }
-
-      return {
-        success: true,
-        utente: utente,
-      };
-    } catch (error) {
-      console.error("Errore durante la visualizzazione dei dati:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+      utente.setEmail(dati.email);
     }
+
+    if (dati.nome) {
+      utente.setNome(dati.nome);
+    }
+    if (dati.cognome) {
+      utente.setCognome(dati.cognome);
+    }
+
+    if (dati.nuovaPassword) {
+      if (!dati.passwordAttuale) {
+        throw new ValidationError(
+          "Per cambiare la password è necessario indicare quella attuale.",
+        );
+      }
+      const corretta = await bcrypt.compare(
+        dati.passwordAttuale,
+        utente.getPasswordHash(),
+      );
+      if (!corretta) {
+        throw new UnauthorizedError("Password attuale non corretta.");
+      }
+      if (!UTENTE.passwordRegex.test(dati.nuovaPassword)) {
+        throw new ValidationError(MESSAGGIO_PASSWORD);
+      }
+      utente.setPasswordHash(
+        await bcrypt.hash(dati.nuovaPassword, env.bcryptRounds),
+      );
+    }
+
+    await this.utenteDao.update(utente);
+    return utente;
   }
 
-  //visualizzza tutti gli utenti
-
-  async visualizzaUtenti(): Promise<{
-    success: boolean;
-    utenti?: Utente[];
-    message?: string;
-  }> {
-    try {
-      const utenti = await this.utenteDao.getAllUtenti();
-      if (!utenti || utenti.length === 0) {
-        return {
-          success: false,
-          message: "Utenti non trovati.",
-        };
-      }
-      return {
-        success: true,
-        utenti: utenti,
-      };
-    } catch (error) {
-      console.error("Errore durante la visualizzazione degli utenti:", error);
-      return {
-        success: false,
-        message: "Errore interno del server. Riprova più tardi.",
-      };
+  /**
+   * Elimina definitivamente un account. Feedback, svolgimenti e conseguimenti
+   * associati vengono rimossi dal database per vincolo di integrità.
+   *
+   * @throws NotFoundError se l'utente non esiste.
+   */
+  public async eliminaUtente(id: number): Promise<void> {
+    const eliminato = await this.utenteDao.delete(id);
+    if (!eliminato) {
+      throw new NotFoundError("Utente non trovato.");
     }
   }
 }

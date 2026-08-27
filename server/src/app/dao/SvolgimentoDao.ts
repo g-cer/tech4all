@@ -1,120 +1,84 @@
-import { Pool, RowDataPacket, FieldPacket } from "mysql2/promise";
+import { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { Svolgimento } from "../entity/gestione_quiz/Svolgimento";
-import { Quiz } from "../entity/gestione_quiz/Quiz";
-import { Utente } from "../entity/gestione_autenticazione/Utente";
-import pool from "../../db";
-import { QuizDao } from "./QuizDao";
-import { UtenteDao } from "./UtenteDao";
+import { getPool } from "../../db/pool";
 
+interface RigaSvolgimento extends RowDataPacket {
+  utente_id: number;
+  quiz_id: number;
+  esito: number;
+  data_conseguimento: Date;
+  risposte_esatte: number;
+}
+
+function toEntity(riga: RigaSvolgimento): Svolgimento {
+  return new Svolgimento(
+    riga.quiz_id,
+    riga.utente_id,
+    riga.esito === 1,
+    new Date(riga.data_conseguimento),
+    riga.risposte_esatte,
+  );
+}
+
+/** Accesso alla tabella `svolgimento`. */
 export class SvolgimentoDao {
-  private db: Pool;
-  private daoQuiz: QuizDao;
-  private daoUtente: UtenteDao;
+  constructor(private readonly db: Pool = getPool()) {}
 
-  constructor(daoQuiz: QuizDao, daoUtente: UtenteDao) {
-    this.db = pool; // Utilizza la connessione al database
-    this.daoQuiz = daoQuiz;
-    this.daoUtente = daoUtente;
-  }
-
-  // Metodo per ottenere uno svolgimento specifico per quiz e utente
-  public async getSvolgimento(
+  public async find(
     quizId: number,
     utenteId: number,
   ): Promise<Svolgimento | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
+    const [righe] = await this.db.query<RigaSvolgimento[]>(
       "SELECT * FROM svolgimento WHERE quiz_id = ? AND utente_id = ?",
       [quizId, utenteId],
     );
-
-    if (rows.length > 0) {
-      const row = rows[0];
-      const quiz = await this.daoQuiz.getQuizById(row.quiz_id);
-      const utente = await this.daoUtente.getUtenteById(row.utente_id);
-      if (quiz && utente) {
-        return new Svolgimento(
-          quiz,
-          utente,
-          row.esito,
-          new Date(row.data_conseguimento),
-          row.risposte_esatte,
-        );
-      }
-    }
-    return null;
+    return righe.length > 0 ? toEntity(righe[0]) : null;
   }
 
-  // Metodo per ottenere tutti gli svolgimenti
-  public async getAllSvolgimenti(): Promise<Svolgimento[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM svolgimento",
+  public async findByUtente(utenteId: number): Promise<Svolgimento[]> {
+    const [righe] = await this.db.query<RigaSvolgimento[]>(
+      "SELECT * FROM svolgimento WHERE utente_id = ? ORDER BY data_conseguimento DESC",
+      [utenteId],
     );
-    const svolgimenti: Svolgimento[] = [];
-    for (const row of rows) {
-      const quiz: Quiz | null = await this.daoQuiz.getQuizById(row.quiz_id);
-      const utente: Utente | null = await this.daoUtente.getUtenteById(
-        row.utente_id,
-      );
-      if (quiz && utente) {
-        svolgimenti.push(
-          new Svolgimento(
-            quiz,
-            utente,
-            row.esito,
-            new Date(row.dataConseguimento),
-            row.risposteEsatte,
-          ),
-        );
-      }
-    }
-    return svolgimenti;
+    return righe.map(toEntity);
   }
 
-  // Metodo per creare un nuovo svolgimento
-  public async createSvolgimento(svolgimento: Svolgimento): Promise<void> {
-    const quiz = svolgimento.getQuiz();
-    const utente = svolgimento.getUtente();
-    const esito = svolgimento.getEsito();
-    const dataConseguimento = svolgimento.getDataConseguimento();
-    const risposteEsatte = svolgimento.getRisposteEsatte();
-    await this.db.query(
-      "INSERT INTO svolgimento (quiz_id, utente_id, esito, data_conseguimento, risposte_esatte) VALUES (?, ?, ?, ?, ?)",
-      [quiz.getId(), utente.getId(), esito, dataConseguimento, risposteEsatte],
-    );
-  }
-
-  // Metodo per aggiornare uno svolgimento esistente
-  public async updateSvolgimento(svolgimento: Svolgimento): Promise<void> {
-    const quiz = svolgimento.getQuiz();
-    const utente = svolgimento.getUtente();
-    const esito = svolgimento.getEsito();
-    const dataConseguimento = svolgimento.getDataConseguimento();
-    const risposteEsatte = svolgimento.getRisposteEsatte();
-    if (quiz === undefined || utente === undefined) {
-      throw new Error("Quiz ID and Utente ID are required for updating.");
-    }
-    await this.db.query(
-      "UPDATE svolgimento SET quiz_id = ?, utente_id = ?, esito = ?, data_conseguimento = ?, risposte_esatte = ? WHERE quiz_id = ? AND utente_id = ?",
+  /**
+   * Inserisce lo svolgimento o ne aggiorna l'esito se già presente.
+   * Un unico statement evita la corsa fra lettura e scrittura quando lo
+   * stesso utente consegna due volte lo stesso quiz.
+   */
+  public async save(
+    svolgimento: Svolgimento,
+    connection: Pool | PoolConnection = this.db,
+  ): Promise<void> {
+    await connection.query(
+      `INSERT INTO svolgimento
+         (utente_id, quiz_id, esito, data_conseguimento, risposte_esatte)
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         esito = VALUES(esito),
+         data_conseguimento = VALUES(data_conseguimento),
+         risposte_esatte = VALUES(risposte_esatte)`,
       [
-        quiz.getId(),
-        utente.getId(),
-        esito,
-        dataConseguimento,
-        risposteEsatte,
-        quiz.getId(),
-        utente.getId(),
+        svolgimento.getUtenteId(),
+        svolgimento.getQuizId(),
+        svolgimento.getEsito(),
+        svolgimento.getDataConseguimento(),
+        svolgimento.getRisposteEsatte(),
       ],
     );
   }
 
-  // Metodo per eliminare uno svolgimento
-  public async deleteSvolgimento(
-    quizId: number,
+  /** Numero di quiz distinti superati dall'utente. */
+  public async contaQuizSuperati(
     utenteId: number,
-  ): Promise<void> {
-    await this.db.query(
-      "DELETE FROM svolgimento WHERE quizId = ? AND utenteId = ?",
-      [quizId, utenteId],
+    connection: Pool | PoolConnection = this.db,
+  ): Promise<number> {
+    const [righe] = await connection.query<RowDataPacket[]>(
+      "SELECT COUNT(*) AS totale FROM svolgimento WHERE utente_id = ? AND esito = TRUE",
+      [utenteId],
     );
+    return Number(righe[0]?.totale ?? 0);
   }
 }

@@ -1,147 +1,135 @@
-import express from "express";
-import multer from "multer";
-import path from "path";
-import sharp from "sharp";
-import fs from "fs";
+import { Router } from "express";
 import { TutorialService } from "../services/TutorialService";
-import { Tutorial } from "../entity/gestione_tutorial/Tutorial";
+import { asyncHandler } from "../middleware/asyncHandler";
+import { parseId } from "../middleware/validate";
+import { requireAdmin } from "../middleware/auth";
+import {
+  eliminaImmagineContenuto,
+  normalizzaCopertina,
+  percorsoContenuto,
+  uploadContenuto,
+  uploadCopertina,
+} from "../middleware/upload";
+import { toTutorialDTO } from "../dto";
+import { CATEGORIE } from "../entity/gestione_tutorial/Categoria";
+import { ValidationError } from "../errors/AppError";
 
-const router = express.Router();
-const tutorialService = new TutorialService();
+/**
+ * Rotte del catalogo dei tutorial.
+ *
+ * La consultazione è pubblica; creazione, modifica ed eliminazione sono
+ * riservate agli amministratori.
+ */
+export function creaTutorialsRouter(tutorialService: TutorialService): Router {
+  const router = Router();
 
-// Configurazione di multer per il caricamento delle immagini
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
+  /** Categorie ammesse: evita al client di replicarne l'elenco. */
+  router.get("/categorie", (_req, res) => {
+    res.status(200).json(CATEGORIE);
+  });
 
-const storageQuill = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/quill/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
+  router.get(
+    "/ricerca",
+    asyncHandler(async (req, res) => {
+      const tutorials = await tutorialService.cercaTutorial(
+        String(req.query.parolaChiave ?? ""),
+      );
+      res.status(200).json(tutorials.map(toTutorialDTO));
+    }),
+  );
 
-const upload = multer({ storage });
-const uploadQuill = multer({ storage: storageQuill });
+  router.get(
+    "/",
+    asyncHandler(async (req, res) => {
+      const categoria =
+        typeof req.query.categoria === "string"
+          ? req.query.categoria
+          : undefined;
+      const tutorials = await tutorialService.getTutorials(categoria);
+      res.status(200).json(tutorials.map(toTutorialDTO));
+    }),
+  );
 
-router.get("/search", async (req, res) => {
-  const { parolaChiave } = req.query;
+  router.get(
+    "/:id",
+    asyncHandler(async (req, res) => {
+      const tutorial = await tutorialService.getTutorial(
+        parseId(req.params.id),
+      );
+      res.status(200).json(toTutorialDTO(tutorial));
+    }),
+  );
 
-  try {
-    const tutorials = await tutorialService.ricercaTutorial(
-      parolaChiave as string
-    );
-    res.status(200).json(tutorials);
-  } catch (error) {
-    console.error("Errore durante la ricerca dei tutorial:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
+  router.post(
+    "/",
+    requireAdmin,
+    uploadCopertina,
+    asyncHandler(async (req, res) => {
+      if (!req.file) {
+        throw new ValidationError("L'immagine di copertina è obbligatoria.");
+      }
+      const grafica = await normalizzaCopertina(req.file);
+      const tutorial = await tutorialService.creaTutorial({
+        titolo: req.body.titolo,
+        grafica,
+        testo: req.body.testo,
+        categoria: req.body.categoria,
+      });
+      res.status(201).json(toTutorialDTO(tutorial));
+    }),
+  );
 
-// Creazione di un nuovo tutorial
-router.post("/tutorial", upload.single("grafica"), async (req, res) => {
-  const { titolo, testo, categoria } = req.body;
-  let grafica = req.file ? req.file.path : null;
+  router.put(
+    "/:id",
+    requireAdmin,
+    uploadCopertina,
+    asyncHandler(async (req, res) => {
+      const id = parseId(req.params.id);
+      const esistente = await tutorialService.getTutorial(id);
+      const grafica = req.file
+        ? await normalizzaCopertina(req.file)
+        : esistente.getGrafica();
 
-  try {
-    if (grafica) {
-      const outputFilePath = `uploads/resized-${Date.now()}-${
-        req.file?.originalname || "default"
-      }`;
-      await sharp(grafica).resize(1280, 720).toFile(outputFilePath);
-      grafica = outputFilePath.replace(/\\/g, "/");
-    }
+      const tutorial = await tutorialService.aggiornaTutorial(id, {
+        titolo: req.body.titolo,
+        grafica,
+        testo: req.body.testo,
+        categoria: req.body.categoria,
+      });
+      res.status(200).json(toTutorialDTO(tutorial));
+    }),
+  );
 
-    const nuovoTutorial = new Tutorial(titolo, grafica || "", testo, categoria);
-    const result = await tutorialService.creazioneTutorial(nuovoTutorial);
-    res.status(201).json(result);
-  } catch (error) {
-    console.error("Errore durante la creazione del tutorial:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
+  router.delete(
+    "/:id",
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+      await tutorialService.eliminaTutorial(parseId(req.params.id));
+      res.status(204).send();
+    }),
+  );
 
-// Caricamento di un'immagine tramite Quill
-router.post("/upload-image", uploadQuill.single("image"), async (req, res) => {
-  try {
-    if (!req.file) {
-      res.status(400).json({ message: "Nessun file caricato" });
-      return;
-    }
+  /** Carica un'immagine da inserire nel corpo di un tutorial. */
+  router.post(
+    "/immagini",
+    requireAdmin,
+    uploadContenuto,
+    asyncHandler(async (req, res) => {
+      if (!req.file) {
+        throw new ValidationError("Nessun file caricato.");
+      }
+      res.status(201).json({ percorso: percorsoContenuto(req.file) });
+    }),
+  );
 
-    const imagePath = req.file.path.replace(/\\/g, "/");
-    const imageUrl = `http://localhost:5000/${imagePath}`;
-    res.status(200).json({ imageUrl });
-  } catch (error) {
-    console.error("Errore durante il caricamento dell'immagine:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
+  router.delete(
+    "/immagini/:nomeFile",
+    requireAdmin,
+    asyncHandler(async (req, res) => {
+      await eliminaImmagineContenuto(req.params.nomeFile);
+      res.status(204).send();
+    }),
+  );
 
-// Cancellazione di un'immagine caricata tramite Quill
-router.delete("/delete-image", async (req, res) => {
-  const { imagePath } = req.body;
-
-  try {
-    const fullPath = path.join(__dirname, "../../../", imagePath);
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath);
-      res.status(200).json({ message: "Immagine cancellata con successo" });
-    } else {
-      res.status(404).json({ message: "Immagine non trovata" });
-    }
-  } catch (error) {
-    console.error("Errore durante la cancellazione dell'immagine:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-// Eliminazione di un tutorial
-router.delete("/tutorial/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await tutorialService.cancellazioneTutorial(parseInt(id));
-    res.status(200).json(result);
-  } catch (error) {
-    console.error("Errore durante l'eliminazione del tutorial:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-// Visualizzazione della lista di tutti i tutorial
-router.get("/tutorial", async (req, res) => {
-  try {
-    const tutorials = await tutorialService.visualizzazioneListaTutorial();
-    res.status(200).json(tutorials);
-  } catch (error) {
-    console.error("Errore durante la visualizzazione dei tutorial:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-// Visualizzazione di un tutorial specifico
-router.get("/tutorial/:id", async (req, res) => {
-  const { id } = req.params;
-  try {
-    const tutorial = await tutorialService.visualizzazioneTutorial(
-      parseInt(id)
-    );
-    if (tutorial) {
-      res.status(200).json(tutorial);
-    } else {
-      res.status(404).json({ message: "Tutorial non trovato" });
-    }
-  } catch (error) {
-    console.error("Errore durante la visualizzazione del tutorial:", error);
-    res.status(500).json({ message: "Errore del server", error });
-  }
-});
-
-export default router;
+  return router;
+}

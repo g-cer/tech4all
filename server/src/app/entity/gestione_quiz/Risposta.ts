@@ -1,98 +1,47 @@
-/**
- * Represents a Risposta entity.
- */
+/** Singola opzione di risposta a una domanda di quiz. */
 export class Risposta {
   /**
-   * The unique identifier of the risposta.
-   */
-  private id?: number;
-  /**
-   * The identifier of the domanda associated with the risposta.
-   */
-  private domandaId?: number;
-  /**
-   * The text of the risposta.
-   */
-  private risposta: string;
-  /**
-   * Indicates whether the risposta is correct.
-   */
-  private corretta: boolean;
-
-  /**
-   * Creates an instance of Risposta.
-   * @param domandaId - The identifier of the domanda associated with the risposta.
-   * @param risposta - The text of the risposta.
-   * @param corretta - Indicates whether the risposta is correct.
-   * @param id - The unique identifier of the risposta.
+   * @param testo Testo dell'opzione.
+   * @param corretta True se è l'opzione corretta.
+   * @param domandaId Domanda di appartenenza; `undefined` prima della persistenza.
+   * @param id Identificativo assegnato dal database.
    */
   constructor(
-    risposta: string,
-    corretta: boolean,
-    domandaId?: number,
-    id?: number,
-  ) {
-    this.domandaId = domandaId;
-    this.risposta = risposta;
-    this.corretta = corretta;
-    this.id = id;
-  }
+    private testo: string,
+    private corretta: boolean,
+    private domandaId?: number,
+    private id?: number,
+  ) {}
 
-  // Getter
-  /**
-   * Gets the unique identifier of the risposta.
-   */
   public getId(): number | undefined {
     return this.id;
   }
 
-  /**
-   * Gets the identifier of the domanda associated with the risposta.
-   */
   public getDomandaId(): number | undefined {
     return this.domandaId;
   }
 
-  /**
-   * Gets the text of the risposta.
-   */
-  public getRisposta(): string {
-    return this.risposta;
+  public getTesto(): string {
+    return this.testo;
   }
 
-  /**
-   * Gets whether the risposta is correct.
-   */
-  public getCorretta(): boolean {
+  public isCorretta(): boolean {
     return this.corretta;
   }
 
-  // Setter
-  /**
-   * Sets the unique identifier of the risposta.
-   */
-  public setId(value: number | undefined) {
+  public setId(value: number): void {
     this.id = value;
   }
 
-  /**
-   * Sets the identifier of the domanda associated with the risposta.
-   */
-  public setDomandaId(value: number) {
+  public setDomandaId(value: number): void {
     this.domandaId = value;
   }
 
-  /**
-   * Sets the text of the risposta.
-   */
-  public setRisposta(value: string) {
-    this.risposta = value;
+  public setTesto(value: string): void {
+    this.testo = value;
   }
 
-  /**
-   * Sets whether the risposta is correct.
-   */
-  public setCorretta(value: boolean) {
+  public setCorretta(value: boolean): void {
     this.corretta = value;
   }
 }

@@ -1,146 +1,119 @@
-import { RowDataPacket, FieldPacket, Pool } from "mysql2/promise";
+import { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { Tutorial } from "../entity/gestione_tutorial/Tutorial";
-import pool from "../../db";
+import { Categoria } from "../entity/gestione_tutorial/Categoria";
+import { getPool } from "../../db/pool";
 
+interface RigaTutorial extends RowDataPacket {
+  id: number;
+  titolo: string;
+  grafica: string;
+  testo: string;
+  categoria: Categoria;
+  valutazione: string | number | null;
+}
+
+function toEntity(riga: RigaTutorial): Tutorial {
+  return new Tutorial(
+    riga.id,
+    riga.titolo,
+    riga.grafica,
+    riga.testo,
+    riga.categoria,
+    riga.valutazione === null ? null : Number(riga.valutazione),
+  );
+}
+
+/** Accesso alla tabella `tutorial`. */
 export class TutorialDao {
-  private db: Pool;
+  constructor(private readonly db: Pool = getPool()) {}
 
-  constructor() {
-    this.db = pool; // Utilizza la connessione al database
+  public async findAll(): Promise<Tutorial[]> {
+    const [righe] = await this.db.query<RigaTutorial[]>(
+      "SELECT * FROM tutorial ORDER BY id DESC",
+    );
+    return righe.map(toEntity);
   }
 
-  // Metodo per ottenere tutti i tutorial
-  public async getAllTutorials(): Promise<Tutorial[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM tutorial",
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Tutorial(
-          row.titolo,
-          row.grafica,
-          row.testo,
-          row.categoria,
-          row.valutazione,
-          row.id,
-        ),
-    );
-  }
-
-  // Metodo per ottenere un tutorial specifico per ID
-  public async getTutorialById(id: number): Promise<Tutorial | null> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
+  public async findById(id: number): Promise<Tutorial | null> {
+    const [righe] = await this.db.query<RigaTutorial[]>(
       "SELECT * FROM tutorial WHERE id = ?",
       [id],
     );
-    if (rows.length > 0) {
-      const row = rows[0];
-      return new Tutorial(
-        row.titolo,
-        row.grafica,
-        row.testo,
-        row.categoria,
-        row.valutazione,
-        row.id,
-      );
-    }
-    return null;
+    return righe.length > 0 ? toEntity(righe[0]) : null;
   }
 
-  // Metodo per creare un nuovo tutorial
-  public async createTutorial(tutorial: Tutorial): Promise<void> {
-    const Titolo = tutorial.getTitolo();
-    const grafica = tutorial.getGrafica();
-    const testo = tutorial.getTesto();
-    const categoria = tutorial.getCategoria();
-
-    await this.db.query(
-      "INSERT INTO tutorial (titolo, grafica, testo, categoria) VALUES (?, ?, ?, ?)",
-      [Titolo, grafica, testo, categoria],
-    );
-  }
-
-  // Metodo per aggiornare un tutorial esistente
-  public async updateTutorial(tutorial: Tutorial): Promise<void> {
-    const Id = tutorial.getId();
-    const Titolo = tutorial.getTitolo();
-    const grafica = tutorial.getGrafica();
-    const testo = tutorial.getTesto();
-    const categoria = tutorial.getCategoria();
-    const valutazione = tutorial.getValutazione();
-    if (Id === undefined) {
-      throw new Error("Tutorial ID is required for updating.");
-    }
-    await this.db.query(
-      "UPDATE tutorial SET titolo = ?, grafica = ?, testo = ?, categoria = ?, valutazione = ? WHERE id = ?",
-      [Titolo, grafica, testo, categoria, valutazione, Id],
-    );
-  }
-
-  // Metodo per eliminare un tutorial
-  public async deleteTutorial(id: number): Promise<void> {
-    await this.db.query("DELETE FROM tutorial WHERE id = ?", [id]);
-  }
-
-  public async getTutorialsByCategoria(categoria: string): Promise<Tutorial[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      "SELECT * FROM tutorial WHERE categoria = ?",
+  public async findByCategoria(categoria: Categoria): Promise<Tutorial[]> {
+    const [righe] = await this.db.query<RigaTutorial[]>(
+      "SELECT * FROM tutorial WHERE categoria = ? ORDER BY id DESC",
       [categoria],
     );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Tutorial(
-          row.titolo,
-          row.grafica,
-          row.testo,
-          row.categoria,
-          row.valutazione,
-          row.id,
-        ),
+    return righe.map(toEntity);
+  }
+
+  /** Cerca per parola chiave su titolo, testo e categoria. */
+  public async search(parolaChiave: string): Promise<Tutorial[]> {
+    const pattern = `%${parolaChiave}%`;
+    const [righe] = await this.db.query<RigaTutorial[]>(
+      `SELECT * FROM tutorial
+        WHERE titolo LIKE ? OR testo LIKE ? OR categoria LIKE ?
+        ORDER BY id DESC`,
+      [pattern, pattern, pattern],
+    );
+    return righe.map(toEntity);
+  }
+
+  /**
+   * Inserisce un nuovo tutorial.
+   *
+   * @returns Il tutorial persistito, completo dell'id assegnato dal database.
+   */
+  public async create(tutorial: Tutorial): Promise<Tutorial> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      `INSERT INTO tutorial (titolo, grafica, testo, categoria)
+       VALUES (?, ?, ?, ?)`,
+      [
+        tutorial.getTitolo(),
+        tutorial.getGrafica(),
+        tutorial.getTesto(),
+        tutorial.getCategoria(),
+      ],
+    );
+
+    return new Tutorial(
+      esito.insertId,
+      tutorial.getTitolo(),
+      tutorial.getGrafica(),
+      tutorial.getTesto(),
+      tutorial.getCategoria(),
+      null,
     );
   }
 
-  public async getTutorialsByValutazione(
-    order: "asc" | "desc",
-  ): Promise<Tutorial[]> {
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      `SELECT * FROM tutorial ORDER BY valutazione ${order}`,
-    );
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Tutorial(
-          row.titolo,
-          row.grafica,
-          row.testo,
-          row.categoria,
-          row.valutazione,
-          row.id,
-        ),
+  /**
+   * Aggiorna un tutorial esistente. La colonna `valutazione` non viene
+   * toccata: è mantenuta dai trigger sulla tabella `feedback`.
+   */
+  public async update(tutorial: Tutorial): Promise<void> {
+    await this.db.query(
+      `UPDATE tutorial
+          SET titolo = ?, grafica = ?, testo = ?, categoria = ?
+        WHERE id = ?`,
+      [
+        tutorial.getTitolo(),
+        tutorial.getGrafica(),
+        tutorial.getTesto(),
+        tutorial.getCategoria(),
+        tutorial.getId(),
+      ],
     );
   }
 
-  // Metodo per cercare tutorial basati su una parola chiave
-  public async searchTutorials(parolaChiave: string): Promise<Tutorial[]> {
-    const query = `
-    SELECT * FROM tutorial
-    WHERE titolo LIKE ? OR testo LIKE ? OR categoria LIKE ?
-  `;
-    const parolaFormato = `%${parolaChiave}%`;
-    const [rows]: [RowDataPacket[], FieldPacket[]] = await this.db.query(
-      query,
-      [parolaFormato, parolaFormato, parolaFormato],
+  /** Elimina il tutorial; quiz e feedback collegati cadono in cascata. */
+  public async delete(id: number): Promise<boolean> {
+    const [esito] = await this.db.query<ResultSetHeader>(
+      "DELETE FROM tutorial WHERE id = ?",
+      [id],
     );
-
-    return rows.map(
-      (row: RowDataPacket) =>
-        new Tutorial(
-          row.titolo,
-          row.grafica,
-          row.testo,
-          row.categoria,
-          row.valutazione,
-          row.id,
-        ),
-    );
+    return esito.affectedRows > 0;
   }
 }
