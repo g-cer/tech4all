@@ -1,32 +1,193 @@
-# Tech4all
+# Tech4All
 
-## Installazioni da condividere per il funzionamento
-
-### Lato Front-End
-
-```bash
-npm install
-```
+Piattaforma web per l'alfabetizzazione digitale: tutorial guidati, quiz di
+verifica e badge che certificano i traguardi raggiunti. Nasce come progetto del
+corso di **Ingegneria del Software** (Università degli Studi di Salerno), con la
+progettazione svolta a monte dell'implementazione secondo il metodo di Brügge.
 
 ---
 
-### Lato Back-End
+## Architettura
 
-```bash
-npm install
+Due applicazioni separate che comunicano solo via HTTP.
+
+```
+┌──────────────────────┐        HTTPS/JSON        ┌──────────────────────┐
+│  client (Next.js)    │  ───────────────────▶    │  server (Express)    │
+│  React 19, TS        │  ◀───────────────────    │  TypeScript          │
+│  Pages Router        │   cookie httpOnly (JWT)  │  service + DAO       │
+└──────────────────────┘                          └──────────┬───────────┘
+                                                             │ mysql2
+                                                  ┌──────────▼───────────┐
+                                                  │  MySQL 8             │
+                                                  └──────────────────────┘
 ```
 
-#### Per far funzionare il db
+Il back-end è organizzato per sottosistemi, ognuno con lo stesso stratificazione:
 
-- Copiare e incollare su MySQL, runnare il codice su MySQL e creare il db.
-- Creare (o inserire in) un file di nome ".env" in server inserendo i dati di accesso del proprio DB nelle seguenti variabili:
+| Strato | Responsabilità | Cartella |
+|---|---|---|
+| Rotte | validazione della forma della richiesta, autorizzazione, serializzazione | `server/src/app/routes` |
+| Servizi | regole di dominio, transazioni | `server/src/app/services` |
+| DAO | accesso a MySQL | `server/src/app/dao` |
+| Entità | modello di dominio | `server/src/app/entity` |
+| DTO | unico punto di serializzazione verso l'esterno | `server/src/app/dto` |
 
-  ```env
-  DB_HOST=""
-  DB_USER=""
-  DB_PASSWORD=""
-  DB_NAME=""
-  ```
+Sottosistemi: **autenticazione**, **gestione tutorial**, **gestione quiz**,
+**gestione feedback**, **gestione obiettivi**.
 
-- In caso di tentativi di test inserire il file nella cartella "test" in server.
-- Per runnare solo la cartella indicata scrivere nel terminare apposito : npx ts-node nomeFileTest.ts e premere invio.
+---
+
+## Prerequisiti
+
+- Node.js **≥ 20.9** (la CI usa la 22)
+- MySQL **≥ 8.0**
+
+## Avvio
+
+### 1. Database
+
+```bash
+cd server
+cp .env.example .env        # e valorizza DB_* e JWT_SECRET
+npm install
+npm run db:reset            # crea lo schema e inserisce i dati di esempio
+```
+
+`npm run db:setup` crea il solo schema; `npm run db:reset` aggiunge anche i dati
+di esempio. Gli script non richiedono il client `mysql` a riga di comando.
+
+Account di prova (le password sono memorizzate come hash bcrypt):
+
+| Email | Password | Ruolo |
+|---|---|---|
+| `admin@example.com` | `AdminPass3@` | amministratore |
+| `user1@example.com` | `Password1@` | utente |
+
+### 2. Back-end
+
+```bash
+cd server
+npm run dev                 # sviluppo, con ricarica automatica
+# oppure
+npm run build && npm start  # esecuzione dal codice compilato
+```
+
+Il server ascolta su `http://localhost:5000` (configurabile con `PORT`).
+
+### 3. Front-end
+
+```bash
+cd client
+cp .env.example .env.local  # NEXT_PUBLIC_API_URL deve puntare al back-end
+npm install
+npm run dev
+```
+
+L'interfaccia è su `http://localhost:3000`. `CLIENT_ORIGIN` sul server deve
+coincidere con questo indirizzo: il cookie di sessione viaggia cross-origin e
+il CORS non ammette il wildcard quando sono richieste le credenziali.
+
+---
+
+## Script
+
+| Comando | Server | Client |
+|---|---|---|
+| `npm run dev` | avvio in sviluppo | avvio in sviluppo |
+| `npm run build` | compila in `dist/` | build di produzione |
+| `npm start` | esegue `dist/server.js` | serve la build |
+| `npm run typecheck` | ✓ | ✓ |
+| `npm run lint` / `lint:fix` | ✓ | ✓ |
+| `npm test` / `test:coverage` | ✓ | — |
+| `npm run db:setup` / `db:reset` | ✓ | — |
+
+---
+
+## Testing
+
+```bash
+cd server && npm run test:coverage
+```
+
+232 test su 13 suite: **unit** sui servizi (DAO iniettati dal costruttore) e
+**integrazione** sulle rotte con `supertest`. Nessun test apre una connessione a
+MySQL: il pool è sostituito da un doppio, quindi la suite gira ovunque senza
+database né variabili d'ambiente reali.
+
+Le soglie di copertura (85% statement, 80% branch) sono verificate da Jest e
+quindi dalla CI: non sono un dato riportato a posteriori. La copertura è
+misurata sul codice che contiene decisioni — servizi, rotte, middleware, errori
+e serializzazione.
+
+La CI (`.github/workflows/ci.yml`) esegue lint, typecheck, test e build su
+entrambe le applicazioni a ogni push e pull request.
+
+---
+
+## Sicurezza
+
+- Le password sono memorizzate come hash **bcrypt** e non lasciano mai il server.
+- La sessione è un **JWT firmato in un cookie `httpOnly`**: il JavaScript di
+  pagina non può leggerlo, quindi un XSS non permette di esfiltrarlo.
+- Ogni rotta che modifica dati è protetta da `requireAuth` o `requireAdmin`, e
+  l'identità dell'operazione è presa dal token: nessun identificativo utente
+  viene accettato dal corpo della richiesta.
+- L'HTML dei tutorial è **sanificato in ingresso** con `sanitize-html`.
+- I nomi dei file caricati sono generati dal server; la cancellazione delle
+  immagini accetta solo nomi semplici, risolti dentro la cartella consentita.
+- La correzione dei quiz avviene **solo sul server**: il quiz inviato al client
+  non contiene l'indicazione della risposta corretta.
+
+---
+
+## Stato delle funzionalità
+
+**Implementato:** registrazione, accesso e gestione del proprio account
+(modifica dati, cambio password, cancellazione); catalogo tutorial con ricerca e
+filtro per categoria; creazione, modifica ed eliminazione di tutorial e quiz da
+parte degli amministratori; svolgimento dei quiz con correzione lato server;
+feedback sui tutorial con moderazione; obiettivi e badge assegnati
+automaticamente al raggiungimento delle soglie.
+
+**Fuori perimetro**, con la relativa motivazione:
+
+- **Chatbot proprietario.** L'assistenza conversazionale è delegata a un widget
+  Voiceflow, componente esterno abilitato solo se
+  `NEXT_PUBLIC_VOICEFLOW_PROJECT_ID` è configurato. Realizzarne uno interno
+  esulerebbe dall'obiettivo del progetto.
+- **Recupero della password.** Richiede l'invio di email transazionali e quindi
+  un servizio esterno e un dominio verificato.
+- **Supporto multilingua.** L'interfaccia e i contenuti sono in italiano.
+
+---
+
+## Documentazione
+
+La documentazione di prodotto è in [`docs/`](docs/), scritta in LaTeX con
+diagrammi UML generati da sorgenti PlantUML versionati, ed è mantenuta
+allineata al codice.
+
+| Documento | Contenuto |
+|---|---|
+| [RAD](docs/pdf/Tech4All_RAD.pdf) | Requisiti, scenari, casi d'uso, modello a oggetti e dinamico, interfaccia utente |
+| [SDD](docs/pdf/Tech4All_SDD.pdf) | Architettura, sottosistemi, dati persistenti, sicurezza, progettazione degli oggetti |
+| [Test Document](docs/pdf/Tech4All_TEST.pdf) | Strategia, derivazione e specifica dei casi di test, risultati, copertura, limiti |
+
+I tre documenti sono legati da una catena di tracciabilità continua: ogni
+requisito è riconducibile a un caso d'uso, a un meccanismo di progettazione e
+ai casi di test che lo verificano. Istruzioni di compilazione e convenzioni
+redazionali sono in [`docs/README.md`](docs/README.md).
+
+`ProjectDocs/` raccoglie la documentazione di management del progetto
+(business case, WBS, gestione dei rischi, pianificazione, retrospettiva) e le
+consegne effettuate durante il corso.
+
+---
+
+## Crediti
+
+Progetto realizzato dal gruppo **C06** del corso di Ingegneria del Software
+(A.A. 2024/2025): Ferdinando Boccia e Domenico D'Antuono (project manager),
+Marco Capuano, Giovanni Cerchia, Arcangelo Ciaramella, Silvana De Martino,
+Giovanni Esposito, Luigi Nasta, Giovanni Salsano, Giuseppe Staiano.
