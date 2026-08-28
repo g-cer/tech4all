@@ -118,7 +118,7 @@ rivelerebbe.
 \endlastfoot
 
 Jest &
-Esecutore dei test, gestione dei doppi e misurazione della copertura. \\
+Esecutore dei test, gestione dei \term{mock} e misurazione della copertura. \\
 
 ts-jest &
 Compilazione TypeScript durante l'esecuzione: i test sono scritti nello
@@ -144,7 +144,7 @@ compilazione a ogni integrazione. \\
 \subsection{Isolamento dal database}
 
 Il modulo che espone il pool di connessioni è sostituito globalmente da un
-doppio all'avvio della suite. Nessun test apre una connessione: l'intera
+mock all'avvio della suite. Nessun test apre una connessione: l'intera
 verifica automatica gira su qualunque macchina senza MySQL installato e senza
 variabili d'ambiente reali.
 
@@ -218,7 +218,7 @@ file, composizione dell'applicazione. \\
 \endlastfoot
 
 Interrogazioni SQL e vincoli del database &
-Il livello di persistenza è sostituito da doppi. Coperti dalle prove di
+Il livello di persistenza è sostituito da mock. Coperti dalle prove di
 sistema (\cref{sec:td-sistema}). \\
 
 Trigger di ricalcolo della valutazione media &

@@ -15,7 +15,7 @@ export default [
   eslintPluginPrettierRecommended,
   {
     rules: {
-      // I doppi dei test hanno bisogno di cast attraverso `unknown`;
+      // I mock dei test hanno bisogno di cast attraverso `unknown`;
       // altrove il tipo esplicito resta obbligatorio.
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": [

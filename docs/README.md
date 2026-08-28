@@ -16,8 +16,8 @@ perimetro è dichiarato tale con la relativa motivazione.
 | [Test Document](pdf/Tech4All_TEST.pdf) | Strategia di verifica, derivazione dei casi di test, specifica, esecuzione, difetti, copertura, limiti | 40 |
 
 Rispetto all'impostazione di Brügge, l'*Object Design Document* è un capitolo
-dello SDD e i quattro documenti di testing sono riuniti in uno solo: per un
-sistema di questa scala mantenerli separati produce ripetizione senza
+dello SDD e i quattro documenti di test sono riuniti in uno solo: per un
+sistema di questa scala, mantenerli separati produce ripetizioni senza
 aggiungere rigore. La scelta è motivata nell'introduzione dei rispettivi
 documenti.
 
@@ -52,7 +52,7 @@ docs/
 Stile, frontespizio, glossario e bibliografia sono definiti una sola volta in
 `latex/shared/` e inclusi dai tre documenti. È la ragione per cui il glossario
 è identico ovunque e i documenti si assomigliano: un termine si definisce in
-un punto solo, e una correzione allo stile si propaga a tutto il set.
+un punto solo, e una correzione allo stile si propaga a tutti e tre.
 
 ## Compilazione
 
@@ -68,13 +68,13 @@ un punto solo, e una correzione allo stile si propaga a tutto il set.
 ```bash
 cd docs
 
-make plantuml     # scarica il renderer dei diagrammi (una volta sola)
+make plantuml     # scarica il generatore di diagrammi (una volta sola)
 make              # diagrammi, tre documenti e verifica di coerenza
 make diagrams     # solo i diagrammi
 make rad          # un solo documento (oppure: sdd, test)
 make verifica     # solo la verifica di coerenza
 make clean        # rimuove i file intermedi di LaTeX
-make distclean    # rimuove anche diagrammi generati e PDF finali
+make distclean    # rimuove anche i diagrammi generati e i PDF finali
 ```
 
 I PDF finali sono prodotti in `pdf/`.
@@ -97,21 +97,21 @@ d'intenti.
 ### Perché il jar di PlantUML non è versionato
 
 `plantuml.jar` pesa circa 17 MB e non è codice del progetto: `make plantuml`
-lo scarica dalle release ufficiali. Serve solo per rigenerare i diagrammi, non
-per leggerli: i PDF sono già in `diagrams/out/` dopo una compilazione, e i
-documenti finali li includono.
+lo scarica dalle pubblicazioni ufficiali. Serve a rigenerare i diagrammi, non a
+leggerli: dopo una compilazione i PDF sono già in `diagrams/out/`, e i documenti
+finali li includono.
 
 ### Perché i PDF finali sono versionati
 
 È l'unica eccezione alla regola di non versionare artefatti generati. I
-documenti sono un deliverable del progetto, e chi consulta il repository deve
-poterli leggere senza installare una distribuzione LaTeX.
+documenti sono un prodotto finale del progetto, e chi consulta il repository
+deve poterli leggere senza installare una distribuzione LaTeX.
 
 ## Diagrammi
 
 I 25 diagrammi sono scritti in PlantUML: sorgenti testuali di poche decine di
 righe, versionati e leggibili in una diff. Modificare una relazione in un
-diagramma è una riga cambiata, non un'immagine da ridisegnare.
+diagramma significa cambiare una riga, non ridisegnare un'immagine.
 
 | Tipo | Diagrammi |
 |---|---|
@@ -133,9 +133,9 @@ generazione.
 ### Nota sul formato
 
 PlantUML produce EPS, che il Makefile converte in PDF con `epstopdf`. La
-distribuzione MIT del renderer non genera PDF direttamente perché la libreria
-necessaria non è compatibile con quella licenza; il passaggio da EPS mantiene
-comunque il risultato vettoriale.
+distribuzione MIT di PlantUML non genera PDF direttamente, perché la libreria
+necessaria non è compatibile con quella licenza; il passaggio attraverso EPS
+mantiene comunque il risultato vettoriale.
 
 ## Convenzioni redazionali
 

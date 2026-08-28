@@ -3,7 +3,7 @@ import { Express } from "express";
 import { RequestHandler } from "express";
 
 /*
- * Multer e sharp sono sostituiti da doppi: qui interessa il comportamento
+ * Multer e sharp sono sostituiti da mock: qui interessa il comportamento
  * delle rotte (autorizzazione, obbligatorietà della copertina, riuso della
  * copertina esistente in aggiornamento), non l'elaborazione delle immagini,
  * verificata separatamente in `unit/upload.test.ts`.

@@ -23,7 +23,8 @@ Due applicazioni separate che comunicano solo via HTTP.
                                                   └──────────────────────┘
 ```
 
-Il back-end è organizzato per sottosistemi, ognuno con lo stesso stratificazione:
+Il back-end è organizzato per sottosistemi, ciascuno con la stessa
+stratificazione:
 
 | Strato | Responsabilità | Cartella |
 |---|---|---|
@@ -33,14 +34,16 @@ Il back-end è organizzato per sottosistemi, ognuno con lo stesso stratificazion
 | Entità | modello di dominio | `server/src/app/entity` |
 | DTO | unico punto di serializzazione verso l'esterno | `server/src/app/dto` |
 
-Sottosistemi: **autenticazione**, **gestione tutorial**, **gestione quiz**,
-**gestione feedback**, **gestione obiettivi**.
+I sottosistemi applicativi sono sei: **autenticazione**, **gestione account**,
+**gestione tutorial**, **gestione quiz**, **gestione feedback** e **gestione
+obiettivi**. A essi si affiancano il middleware di sicurezza e lo strato di
+accesso ai dati, che tutti gli altri utilizzano.
 
 ---
 
 ## Prerequisiti
 
-- Node.js **≥ 20.9** (la CI usa la 22)
+- Node.js **≥ 20.9** (la CI usa la versione 22)
 - MySQL **≥ 8.0**
 
 ## Avvio
@@ -85,8 +88,9 @@ npm run dev
 ```
 
 L'interfaccia è su `http://localhost:3000`. `CLIENT_ORIGIN` sul server deve
-coincidere con questo indirizzo: il cookie di sessione viaggia cross-origin e
-il CORS non ammette il wildcard quando sono richieste le credenziali.
+coincidere con questo indirizzo: il cookie di sessione attraversa il confine fra
+le due origini, e la specifica CORS non ammette un'origine generica quando la
+richiesta include le credenziali.
 
 ---
 
@@ -96,7 +100,7 @@ il CORS non ammette il wildcard quando sono richieste le credenziali.
 |---|---|---|
 | `npm run dev` | avvio in sviluppo | avvio in sviluppo |
 | `npm run build` | compila in `dist/` | build di produzione |
-| `npm start` | esegue `dist/server.js` | serve la build |
+| `npm start` | esegue `dist/server.js` | espone la build di produzione |
 | `npm run typecheck` | ✓ | ✓ |
 | `npm run lint` / `lint:fix` | ✓ | ✓ |
 | `npm test` / `test:coverage` | ✓ | — |
@@ -112,13 +116,13 @@ cd server && npm run test:coverage
 
 232 test su 13 suite: **unit** sui servizi (DAO iniettati dal costruttore) e
 **integrazione** sulle rotte con `supertest`. Nessun test apre una connessione a
-MySQL: il pool è sostituito da un doppio, quindi la suite gira ovunque senza
+MySQL: il pool è sostituito da un mock, quindi la suite gira ovunque senza
 database né variabili d'ambiente reali.
 
-Le soglie di copertura (85% statement, 80% branch) sono verificate da Jest e
-quindi dalla CI: non sono un dato riportato a posteriori. La copertura è
-misurata sul codice che contiene decisioni — servizi, rotte, middleware, errori
-e serializzazione.
+Le soglie di copertura (85% delle istruzioni, 80% delle diramazioni) sono
+verificate da Jest e quindi dalla CI: non sono un dato riportato a posteriori.
+La copertura è misurata sul codice che contiene decisioni — servizi, rotte,
+middleware, errori e serializzazione.
 
 La CI (`.github/workflows/ci.yml`) esegue lint, typecheck, test e build su
 entrambe le applicazioni a ogni push e pull request.
@@ -128,14 +132,16 @@ entrambe le applicazioni a ogni push e pull request.
 ## Sicurezza
 
 - Le password sono memorizzate come hash **bcrypt** e non lasciano mai il server.
-- La sessione è un **JWT firmato in un cookie `httpOnly`**: il JavaScript di
-  pagina non può leggerlo, quindi un XSS non permette di esfiltrarlo.
+- La sessione è un **JWT firmato, trasmesso in un cookie `httpOnly`**: il
+  JavaScript della pagina non può leggerlo, quindi un attacco XSS non basta a
+  sottrarlo.
 - Ogni rotta che modifica dati è protetta da `requireAuth` o `requireAdmin`, e
   l'identità dell'operazione è presa dal token: nessun identificativo utente
   viene accettato dal corpo della richiesta.
 - L'HTML dei tutorial è **sanificato in ingresso** con `sanitize-html`.
 - I nomi dei file caricati sono generati dal server; la cancellazione delle
-  immagini accetta solo nomi semplici, risolti dentro la cartella consentita.
+  immagini accetta solo nomi semplici, risolti all'interno della cartella
+  consentita.
 - La correzione dei quiz avviene **solo sul server**: il quiz inviato al client
   non contiene l'indicazione della risposta corretta.
 
@@ -144,20 +150,20 @@ entrambe le applicazioni a ogni push e pull request.
 ## Stato delle funzionalità
 
 **Implementato:** registrazione, accesso e gestione del proprio account
-(modifica dati, cambio password, cancellazione); catalogo tutorial con ricerca e
-filtro per categoria; creazione, modifica ed eliminazione di tutorial e quiz da
-parte degli amministratori; svolgimento dei quiz con correzione lato server;
-feedback sui tutorial con moderazione; obiettivi e badge assegnati
-automaticamente al raggiungimento delle soglie.
+(modifica dei dati, cambio della password, cancellazione); catalogo dei tutorial
+con ricerca e filtro per categoria; creazione, modifica ed eliminazione di
+tutorial e quiz da parte degli amministratori; svolgimento dei quiz con
+correzione lato server; feedback sui tutorial con moderazione; obiettivi e badge
+assegnati automaticamente al raggiungimento delle soglie.
 
 **Fuori perimetro**, con la relativa motivazione:
 
 - **Chatbot proprietario.** L'assistenza conversazionale è delegata a un widget
-  Voiceflow, componente esterno abilitato solo se
-  `NEXT_PUBLIC_VOICEFLOW_PROJECT_ID` è configurato. Realizzarne uno interno
-  esulerebbe dall'obiettivo del progetto.
-- **Recupero della password.** Richiede l'invio di email transazionali e quindi
-  un servizio esterno e un dominio verificato.
+  Voiceflow, componente esterno che viene abilitato solo se
+  `NEXT_PUBLIC_VOICEFLOW_PROJECT_ID` è configurato. Realizzarne uno proprio
+  esulerebbe dagli obiettivi del progetto.
+- **Recupero della password.** Richiede l'invio di messaggi di posta
+  transazionali, quindi un servizio esterno e un dominio verificato.
 - **Supporto multilingua.** L'interfaccia e i contenuti sono in italiano.
 
 ---
@@ -170,7 +176,7 @@ allineata al codice.
 
 | Documento | Contenuto |
 |---|---|
-| [RAD](docs/pdf/Tech4All_RAD.pdf) | Requisiti, scenari, casi d'uso, modello a oggetti e dinamico, interfaccia utente |
+| [RAD](docs/pdf/Tech4All_RAD.pdf) | Requisiti, scenari, casi d'uso, modello a oggetti, modello dinamico, interfaccia utente |
 | [SDD](docs/pdf/Tech4All_SDD.pdf) | Architettura, sottosistemi, dati persistenti, sicurezza, progettazione degli oggetti |
 | [Test Document](docs/pdf/Tech4All_TEST.pdf) | Strategia, derivazione e specifica dei casi di test, risultati, copertura, limiti |
 

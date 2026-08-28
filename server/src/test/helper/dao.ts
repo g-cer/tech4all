@@ -16,7 +16,7 @@ import { Risposta } from "../../app/entity/gestione_quiz/Risposta";
 import { Obiettivo } from "../../app/entity/gestione_obiettivi/Obiettivo";
 
 /*
- * Doppi dei DAO e costruttori di entità usati dalle suite.
+ * Mock dei DAO e costruttori di entità usati dalle suite.
  *
  * I service ricevono i DAO dal costruttore, quindi qui bastano oggetti
  * conformi all'interfaccia: nessun test ha bisogno di raggiungere campi

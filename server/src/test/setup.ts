@@ -1,7 +1,7 @@
 /*
  * Configurazione comune a tutte le suite.
  *
- * Il pool MySQL è sostituito da un doppio: nessun test apre una connessione,
+ * Il pool MySQL è sostituito da un mock: nessun test apre una connessione,
  * quindi la suite gira ovunque senza un database e senza variabili d'ambiente
  * reali. I DAO sono comunque simulati dai singoli test.
  */
